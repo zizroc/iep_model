@@ -30,8 +30,22 @@ In the simulator file, modules are split into 2 parts, which may be thought of a
 
 ## Installation
 
-Right now the model must be run piece-meal.
+Right now the Model must be run from a local machine. The Model itself is small, but you must have space for a few GB of data.
 
+Start by cloning this repo to your machine, or clicking 'Code' > 'Download ZIP' on GitHub. (The RStudio IDE makes this straightforward, with lots of good documentation. If you are new to RStudio, download/update to the most recent version from [here](https://rstudio.com/products/rstudio/download/#download).) Extract the 'iep_model-main.zip' and rename the new folder '/iep_model'. Find 'iep_model-main.Rproj' in '/iep_model' and click on it. This should begin an RStudio session.
+
+From RStudio, use 'Terminal' to set up a new data folder ('/data_iep_model') somewhere else on your machine; i.e., not within the '/iep_model' folder. (It is not necessary to access a terminal from within RStudio. If you are not yet familiar with shell programming, it is convenient to keep everything in one place.) Create a new R script file and paste the following (replacing the tilde as required) to make a path to this folder, viz.
+
+``` r
+data_path <- "~/data_iep_model"
+data_dir  <- dir(data_path)
+
+model_path <- "~/iep_model"
+model_dir  <- dir(model_path)
+
+```
+
+You must now download and extract data for the Model. TBC...
 
 ## Example
 
