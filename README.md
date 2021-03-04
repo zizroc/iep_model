@@ -45,7 +45,15 @@ model_dir  <- dir(model_path)
 
 ```
 
-You must now download and extract data for the Model. TBC...
+You must now download and extract data for the Model. Run the 'data_downloader.R' script in your console.
+```{r}
+# open this file and run as a script
+["~/iep_model/model/R/data/data_downloader.R"]("~/iep_model/model/R/data/data_downloader.R")
+```
+
+You should now have a set of large data files in their own folders nested within your 'data_path' directory. (You will see these listed as .csv files. Unfortunately, the FAO uses inconsistent conventions when structuring their data; so we will treat these .csv files as raw data that will need to be reshaped to be used by the Model. Reshaping will generally be handled automatically by the '_manager.R' files. While you confirm this you can also take the opportunity to delete the .zip versions of the data files.)
+
+
 
 ## Example
 
