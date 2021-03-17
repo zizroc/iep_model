@@ -4,74 +4,67 @@ library(R6)
 library(tidyverse)
 
 #data
-loc_map <- read.csv("~/Projects/IEP_2/Model/R_files/Data_files/location_code_map_data.csv", 
-                    header = TRUE, 
-                    stringsAsFactors = FALSE) %>% 
-  dplyr::select(-X) %>% 
-  na.omit()
+source(paste0(data_path, "/R/map_data.R"))
 
-# countrycodes <- loc_map %>% 
-#   filter(ISO3_Code %in% c("ARG", "CHN")) %>% 
-#   # filter(ISO3_Code %in% c("ARG", "CAN", "CHN", "MEX", "USA")) %>% 
-#   # filter(SubRegName %in% c("Eastern Asia")) %>%
-#   dplyr::select(ISO3_Code, Area, Location, Area.Code, LocID)
-# 
-# countrycode_iso3alpha   <- countrycodes %>% 
-#   pull(ISO3_Code)
-# countrycode_un_numeric  <- countrycodes %>% 
-#   pull(LocID)
-# countrycode_fao_numeric <- countrycodes %>% 
-#   pull(Area.Code)
-
-#' Define an R6Class for country
-#' 
-#' @param iso_alpha3      The country's unique 3-character string ID.
-#' @param countryname     Official long name of the country.
-#' @param fao_countrycode The country's unique numerical ID as used by Food and Agriculture Organisation.
-#' @param un_countrycode  The country's unique numerical ID as used by the United Nations.
-#' @param subregioncode   The containing subregion's unique numerical ID as used by UN.
-#' @param subregionname   The containing subregion's short name as used by UN.
-#' @param year            Numerical year, starting at 2000.
-#' @param country_data    Tibble containing country level identifiers.
-#' @return                Instance of country level data.
-#' @examples
-#' country$set_iso_alpha3("CAN")
-country <- R6::R6Class("country", list(
-  iso_alpha3      = NA, 
-  countryname     = NA, 
-  fao_countrycode = NA, 
-  un_countrycode  = NA, 
-  subregioncode   = NA, 
-  subregionname   = NA, 
-  year            = NA, 
-  country_data    = tibble(.rows = 50), 
-  # initialize = function(year = 2000) {
-  #   self$year <- year
-  # }, 
-  set_year         = function(x) {
-    self$year <- x
+country <- R6::R6Class(
+  "country", 
+  list(
+  iso_alpha3      = NULL, 
+  countryname     = NULL, 
+  fao_countrycode = NULL, 
+  un_countrycode  = NULL, 
+  subregioncode   = NULL, 
+  subregionname   = NULL, 
+  year            = NULL, 
+  country_data    = NULL, 
+  initialize = function(
+    year         = 2000, 
+    country_data = data.frame(.rows = 50)
+    ) {
+    self$year         <- year
+    self$country_data <- country_data
+  },
+  set_year         = function(year) {
+    #' set_year 
+    #' 
+    #' @description Sets the year for evaluation.
+    #' 
+    #' @param year numeric Common year
+    
+    self$year <- year
   }, 
-  set_iso_alpha3  = function(x) {
-    self$iso_alpha3 <- x
+  set_iso_alpha3  = function(iso3) { 
+    #' set_iso_alpha3 
+    #' 
+    #' @description Used after constructor to instantiate at country-level.
+    #' 
+    #' @param iso3 character ISO Alpha-3 alphanumeric country code
+    #' 
+    #' @details Set the country object's ISO alpha3 code first to fill in other variables automatically.
+    #' @examples 
+    #' obj <- country$new()
+    #' obj$set_iso_alpha3("CAN")
+    
+    self$iso_alpha3 <- iso3
     
     self$countryname <- loc_map %>% 
-      dplyr::filter(ISO3_Code == x) %>% 
+      dplyr::filter(ISO3_Code == iso3) %>% 
       dplyr::pull(Location)
     
     self$fao_countrycode <- loc_map %>% 
-      dplyr::filter(ISO3_Code == x) %>% 
+      dplyr::filter(ISO3_Code == iso3) %>% 
       dplyr::pull(Area.Code)
     
     self$un_countrycode <- loc_map %>% 
-      dplyr::filter(ISO3_Code == x) %>% 
+      dplyr::filter(ISO3_Code == iso3) %>% 
       dplyr::pull(LocID)
     
     self$subregioncode <- loc_map %>% 
-      dplyr::filter(ISO3_Code == x) %>% 
+      dplyr::filter(ISO3_Code == iso3) %>% 
       dplyr::pull(SubRegID)
     
     self$subregionname <- loc_map %>% 
-      dplyr::filter(ISO3_Code == x) %>% 
+      dplyr::filter(ISO3_Code == iso3) %>% 
       dplyr::pull(SubRegName)
   }, 
   set_country_data = function() {

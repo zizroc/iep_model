@@ -1,5 +1,10 @@
 # data_downloader.R
-# run the following as a script in the console
+# source this file or run the following as a script in the console
+
+if(!exists("data_path")){
+  # set data path for your local machine
+  data_path <- "~/Data/IEP_Model/data_iep_model"
+}
 
 # set URL from which FAOSTAT data is downloaded
 fao_data_download_url <- "http://fenixservices.fao.org/faostat/static/bulkdownloads/"

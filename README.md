@@ -11,7 +11,7 @@ iep_model is an integrated system model under development for the Iterative Eden
 
 The Model is organized into 3 classes of files: (1) module files (e.g., 'crops.R' and 'crop_manager.R') that define model class structures and logic; (2) data files (e.g., 'policy_data.R') that shape raw data sources into data frames that may be passed to the module files; and (3) a simulator ('simulator.R') that calls and sequences the modules. The module files live in the /R directory; and the data files live in the /data directory, nested within /R. The simulator file lives in a separate /simulator directory.
 
-There are 2 main types of module files: (i) state files and (ii) state manager files. State files (e.g., 'crops.R') contain R6 classes of abstract system states, and they must be given an instance (i.e., have their initially empty parameters mapped to a country, a year, a state of this country's crops, etc.). State files also contain data frames that work like a memory of the different parameter values the state files have had through time, for different countries, and so on. State files are instantiated by the simulator file. State manager files contain functions that cause, and logic that constrains, changes in state files' parameters as the simulator evolves states time-step by time-step. State manager functions may also contain logic that constrains spatial changes (e.g., cropland area must be smaller than a country's total land area).
+There are 2 main types of module files: (i) state files and (ii) state manager files. State files (e.g., 'crops.R') contain R6 classes of abstract system states, and they must be given an instance (i.e., have their initially empty parameters mapped to a country, a year, a state of this country's crops, etc.). State files also contain data frames that work like a memory of the different parameter values the state files have had through time, for different countries, and so on. State files are instantiated at country-level by the simulator file. State manager files contain functions that cause, and logic that constrains, changes in state files' parameters as the simulator evolves states time-step by time-step. State manager functions may also contain logic that constrains spatial changes (e.g., cropland area must be smaller than a country's total land area).
 
 The code structure of state and state manager files differs slightly because we do not need to use the full object oriented character for state manager files that R6 classes provide. Specifically, we require that state files produce mutable objects, but state manager file objects need not be mutable. We are defining state managers in terms of R6 objects because this keeps state manager functions from entering the global workspace environment, since they are defined only within their own R6 class environments. Hence, to call a function (and obtain a value), we instantiate a manager file, viz.
 
@@ -24,9 +24,9 @@ State files' parameters are either single-valued variables (that may be of numer
 
 Data files generally convert raw data files to structured data frames that may be passed to the state and state manager files. Therefore, data files have the least standard format. To make these as legible as possible, we follow tidy data shaping conventions and make plenty of comments. In the interests of reproducibility, we have tried to use open access data sources and download raw sources to shape within the code itself; however, this is not always possible.
 
-The simulator file sequences modules in order because of dependencies shared between the modules. Running modules out of order, or omitting models unless expressly allowed, may cause fatal errors in the Model or errors in its results. Presently, "modules" are loosely defined by in-line code comments in the simulator file. These modules group code that instantiates state and state manager files, and then uses state manager functions to set parameters in the state files. Each state file contains one or more parameters whose labels include the word "data". Once the state's single-valued variable parameters are set, these are passed to a data parameter, which appends the new values to prior values.
+The simulator file sequences modules in order because of dependencies shared between the modules. Running modules out of order, or omitting models unless expressly allowed, may cause fatal errors in the Model or errors in its results. Presently, "modules" are loosely defined (see in-line comments) in the simulator file. These modules start with an object constructor (i.e., instantiates some state and its associated state_manager file), and then uses state manager functions to set parameters in the state files. Each state file contains one or more parameters whose labels include the word "data". Once the state's single-valued variable parameters are set, these are passed to a data parameter, which appends the new values to prior values.
 
-In the simulator file, modules are split into 2 parts, which may be thought of as "supply" and "demand" parts of the module. The supply part of a module instantiates a state object and its associated state manager object (e.g., 'crop' and 'crop_manager') and fills the 'data' parameter for each instance (i.e., country, year, etc.). Because humans and livestock compete for crops (food and feed, respectively), crops and livestock compete for land, and so on, the other modules' supply parts must be loaded before demands may be considered. The demand part of a module revisits the total demand for some product (e.g., cereal crops) from humans and animals, and imports or exports to zero deficits or surpluses respectively. In the Model, this is done via trade. Presently, the Model trades only food and feed from crops, and trade products are in effect sourced from, and sent to, a cornucopia of infinite size and riches. This will become a clearinghouse with logic to constrain trade in terms of geographic range (i.e., regionalization, high transport cost, tarrifs, etc.) and strategic (water) or environmental considerations (biodiversity protection, carbon cost, etc.).
+In the simulator file, modules are split into 2 parts, which may be thought of as "supply" and "demand" parts of the module. The supply part of a module constructs a state object and its associated state manager object (e.g., 'crop' and 'crop_manager') and fills the 'data' parameter for each instance (i.e., country, year, etc.). Because humans and livestock compete for crops (food and feed, respectively), crops and livestock compete for land, and so on, the other modules' supply parts must be loaded before demands may be considered. The demand part of a module revisits the total demand for some product (e.g., cereal crops) from humans and animals, and imports or exports to zero deficits or surpluses respectively. In the Model, this is done via trade. Presently, the Model trades only food and feed from crops, and trade products are in effect sourced from, and sent to, a cornucopia of infinite size and riches. This will become a clearinghouse with logic to constrain trade in terms of geographic range (i.e., regionalization, high transport cost, tarrifs, etc.) and strategic (water) or environmental considerations (biodiversity protection, carbon cost, etc.).
 
 ## Installation
 
@@ -47,17 +47,15 @@ model_dir  <- dir(model_path)
 
 You must now download and extract data for the Model. Run the 'data_downloader.R' script in your console, i.e., ["~/iep_model/model/R/data/data_downloader.R"]("~/iep_model/model/R/data/data_downloader.R").
 
-You should now have a set of large data files in their own folders nested within your 'data_path' directory. (You will see these listed as .csv files. Unfortunately, the FAO uses inconsistent conventions when structuring their data; so we will treat these .csv files as raw data that will need to be reshaped to be used by the Model. Reshaping will generally be handled automatically by the '_manager.R' files. While you confirm this you can also take the opportunity to delete the .zip versions of the data files.)
+You should now have a set of large data files in their own folders nested within your 'data_path' directory. (You will see these listed as .csv files. Unfortunately, the FAO uses inconsistent conventions when structuring their data; so we will treat these .csv files as raw data that will need to be reshaped to be used by the Model. Reshaping will generally be handled automatically by the '_manager.R' files. When you confirm that the files have downloaded and been extracted properly, you can also take the opportunity to delete the .zip versions of the data files.)
 
 
 
 ## Example
 
-Instantiating a country-level object.
+Constructing a country-level object.
 
 ``` r
-library(IEPModel)
-
 # chn <- country$new()
 # chn$set_iso_alpha3_code("CHN")
 # chn
@@ -93,3 +91,16 @@ The ‘crp’ object now contains the crop production information for the select
 ```
 
 This prints a tibble containing the instance of country level data.
+
+## Documentation
+
+The Model presently uses the 'docstring' library for documentation. To find documentation associated with a function inside a class, you must (unfortunately) first instantiate an object with the class, then assign the function to some temporary variable, and then use the '?' operator on the temporary variable. An example follows:
+
+``` r
+#the '?' operator from docstring appears to get confused by the '$' pointer operator
+cntry <- country$new()
+cntry$set_iso_alpha3("CAN")
+tmp_var <- cntry$set_iso_alpha3
+?tmp_var
+crp$get_crop_data()
+```
