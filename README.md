@@ -5,11 +5,11 @@
 <!-- badges: start -->
 <!-- badges: end -->
 
-iep_model is an integrated system model under development for the Iterative Eden Project.
+The iep_model is an integrated system model framework under development for the Iterative Eden Project.
 
 ## Structure
 
-The Model is organized into 3 classes of files: (1) module files (e.g., 'crops.R' and 'crop_manager.R') that define model class structures and logic; (2) data files (e.g., 'policy_data.R') that shape raw data sources into data frames that may be passed to the module files; and (3) a simulator ('simulator.R') that calls and sequences the modules. The module files live in the /R directory; and the data files live in the /data directory, nested within /R. The simulator file lives in a separate /simulator directory.
+The Model is organized into 3 kinds of files: (1) module files (e.g., 'crops.R' and 'crop_manager.R') that define model class structures and logic; (2) data files (e.g., 'policy_data.R') that shape raw data sources into data frames that may be passed to the module files; and (3) a simulator ('simulator.R') that calls and sequences the modules. The module files live in the /R directory; and the data files live in the /data directory, nested within /R. The simulator file lives in a separate /simulator directory.
 
 There are 2 main types of module files: (i) state files and (ii) state manager files. State files (e.g., 'crops.R') contain R6 classes of abstract system states, and they must be given an instance (i.e., have their initially empty parameters mapped to a country, a year, a state of this country's crops, etc.). State files also contain data frames that work like a memory of the different parameter values the state files have had through time, for different countries, and so on. State files are instantiated at country-level by the simulator file. State manager files contain functions that cause, and logic that constrains, changes in state files' parameters as the simulator evolves states time-step by time-step. State manager functions may also contain logic that constrains spatial changes (e.g., cropland area must be smaller than a country's total land area).
 
@@ -47,9 +47,11 @@ model_dir  <- dir(model_path)
 
 You must now download and extract data for the Model. Run the 'data_downloader.R' script in your console, i.e., ["~/iep_model/model/R/data/data_downloader.R"]("~/iep_model/model/R/data/data_downloader.R").
 
-You should now have a set of large data files in their own folders nested within your 'data_path' directory. (You will see these listed as .csv files. Unfortunately, the FAO uses inconsistent conventions when structuring their data; so we will treat these .csv files as raw data that will need to be reshaped to be used by the Model. Reshaping will generally be handled automatically by the '_manager.R' files. When you confirm that the files have downloaded and been extracted properly, you can also take the opportunity to delete the .zip versions of the data files.)
+You should now have a set of large data files in their own folders nested within your 'data_path' directory. (You will see these listed as .csv files. Unfortunately, the FAO uses inconsistent conventions when structuring their data; so we will treat these .csv files as raw data that will need to be reshaped to be used by the Model. Reshaping will generally be handled automatically by the '_manager.R' files. Manually reshaped files will need to be added separately, in the next step. When you confirm that the files have downloaded and been extracted properly, you can also take the opportunity to delete the .zip versions of the data files.)
 
+## Run the model
 
+Start a new R session. 
 
 ## Example
 
@@ -67,7 +69,7 @@ The R6Class object ‘chn’ is now instantiated as model country China, contain
 # chn$countryname
 ```
 
-In the Model, many functions live inside of R6Class objects, and not in the global workspace. You will need to instantiate one of the manager classes, e.g., ‘crops\_manager’, to make available any function to do with crop management.
+In the Model, many functions live inside of R6Class objects, and not in the global workspace. You will need to instantiate one of the manager classes, e.g., ‘crops_manager’, to make available any function to do with crop management.
 
 ``` r
 # crp     <- crops$new()
@@ -94,13 +96,28 @@ This prints a tibble containing the instance of country level data.
 
 ## Documentation
 
-The Model presently uses the 'docstring' library for documentation. To find documentation associated with a function inside a class, you must (unfortunately) first instantiate an object with the class, then assign the function to some temporary variable, and then use the '?' operator on the temporary variable. An example follows:
+The Model presently uses the 'docstring' library for documentation. This makes determining the purpose of the Model's various functions easy.
+
+To find documentation associated with a function inside a class, you must (unfortunately) first instantiate an object with the class, then assign the function to some temporary variable, and then use the '?' operator on the temporary variable. An example follows:
 
 ``` r
-#the '?' operator from docstring appears to get confused by the '$' pointer operator
+#the '?' operator from docstring appears to get confused by the '$' pointer operator so an extra step is required
 cntry <- country$new()
 cntry$set_iso_alpha3("CAN")
 tmp_var <- cntry$set_iso_alpha3
 ?tmp_var
-crp$get_crop_data()
 ```
+
+## Details
+
+### Data
+
+Delimited data files (e.g., .csv) should be contained within the /data_path directory defined above. R scripts used to load these data into the working environment should be contained within a separate /R directory. (Neither of these directories should be nested within the /iep_model_path directory defined above. You may have noticed that this creates two distinct /R directories, here and nested within the /iep_model_path directory. This is intentional so the nested /R directory stays package-compliant and will become more important in future.)
+
+#### libraries_list.R
+
+Loads the required R libraries into memory for the session.
+
+#### map_data.R
+
+Loads label information for countries and their geographic sub-regions, as defined by the UN/FAO into the working environment from a .csv file ('location_code_map_data.csv'). The .csv file is a manually cleaned and merged data set that maps ordinary country names, alphanumeric ISO Alpha-3, numeric FAO, and numeric UN codes at country-level, and the associated names and numeric codes for the sub-regions that contain them.

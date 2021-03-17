@@ -1,17 +1,6 @@
 # simulator module
 
 
-#data
-source("~/Projects/IEP_2/Model/dev/R_files/data/policy_data.R") 
-source("~/Projects/IEP_2/Model/dev/R_files/data/water_footprint_data.R")
-
-#state classes
-source("~/Projects/IEP_2/Model/dev/R_files/state_classes.R")
-
-#state manager classes
-source("~/Projects/IEP_2/Model/dev/R_files/state_managers.R")
-
-
 
 time_frame     <- c(2000:2005)
 land_use_types <- c("cropland", "permanent_cropland", "arable_land", "pasture", "forest", "otherland")
