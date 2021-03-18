@@ -121,3 +121,20 @@ Loads the required R libraries into memory for the session.
 #### map_data.R
 
 Loads label information for countries and their geographic sub-regions, as defined by the UN/FAO into the working environment from a .csv file ('location_code_map_data.csv'). The .csv file is a manually cleaned and merged data set that maps ordinary country names, alphanumeric ISO Alpha-3, numeric FAO, and numeric UN codes at country-level, and the associated names and numeric codes for the sub-regions that contain them.
+
+### R6 classes
+
+Under package development criteria, each R6 class should have its own separate .R file. This will happen eventually. For the moment, all classes are nested within two .R files: (1) state_classes.R and (2) state_managers.R.
+
+#### state_classes.R
+
+* R6class::country. Base class and unit of analysis from which all others are sub-classed. Contains geographic location and year information.
+
+* R6class::land_use. Sub-class of country. Contains information related to land use type and areal coverage.
+
+* R6class::crop. Sub-class of country. Contains information related to crop productivity, harvest yield, the ratio of arable land allotted to crop production (the remainder being fallowed), as well as how crops are allocated, i.e., as food (for human consumption), feed (for animal consumption), seed, loss/wastage (harvest loss and value-chain losses), industrial processing (e.g., textiles fabrication), and other uses (e.g., bioethanol). Harvest yield values are in tonnes per hectare; land allotment ratios are given in dimensionless values between 0 and 1; allocation values are given in tonnes per year.
+
+* R6class::livestock. Sub-class of country. Contains information related to low-level animal productivity
+
+
+#### state_managers.R
