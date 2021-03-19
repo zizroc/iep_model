@@ -134,7 +134,7 @@ Under package development criteria, each R6 class should have its own separate .
 
 * R6class::crop. Sub-class of country. Contains information related to crop productivity, harvest yield, the ratio of arable land allotted to crop production (the remainder being fallowed), as well as how crops are allocated, i.e., as food (for human consumption), feed (for animal consumption), seed, loss/wastage (harvest loss and value-chain losses), industrial processing (e.g., textiles fabrication), and other uses (e.g., bioethanol). Harvest yield values are in tonnes per hectare; land allotment ratios are given in dimensionless values between 0 and 1; allocation values are given in tonnes per year.
 
-* R6class::livestock. Sub-class of country. Contains information related to low-level animal productivity
+* R6class::livestock. Sub-class of country. Contains information related to low-level livestock values, e.g., stock whose primary usage is for dairy or meat products, or "other" for neither, e.g., for hides. Stock values are given in individual animal head count (even for rodents and fowl, which FAO denominates by 1000 head), except for fish, whose stock is given in tonnes; livestock weights are given in terms of herd tropical livestock units (TLU); livestock (crude) growth rate (head per year); and the class contains variables for feed demand in terms of dry matter (tonnes) and crude protein (tonnes). NB: Because livestock serve multiple uses, the Model makes a bit of a fudge here: it uses the R6class::livestock_manager$product_usage function to pass a dimensionless ratio between 0 and 1 to stock_quantity values, based on total national-level stock usages from FAO.
 
 
 #### state_managers.R
