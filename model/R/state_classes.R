@@ -68,6 +68,17 @@ country <- R6::R6Class(
       dplyr::pull(SubRegName)
   }, 
   set_country_data = function() {
+    #' set_country_data 
+    #' 
+    #' @description Appends annual data from class variables to data frame of prior variable values.
+    #' 
+    #' @details Set the country object's ISO alpha3 code first to fill in other variables automatically.
+    #' @examples 
+    #' obj <- country$new()
+    #' obj$set_iso_alpha3("CAN")
+    #' obj$set_year(2001)
+    #' obj$set_country_data()
+    #' 
     x = tibble(
       country_name         = self$countryname, 
       iso_alpha3_code      = self$iso_alpha3, 
@@ -80,6 +91,18 @@ country <- R6::R6Class(
     self$country_data <- rbind(self$country_data, x)
   }, 
   get_country_data = function() {
+    #' get_country_data 
+    #' 
+    #' @description Data frame container for country class variables.
+    #' 
+    #' @return Tibble (data frame) of all country class data set so far.
+    #' @examples 
+    #' obj <- country$new()
+    #' obj$set_iso_alpha3("CAN")
+    #' obj$set_year(2001)
+    #' obj$set_country_data()
+    #' obj$get_country_data()
+    #' 
     return(as_tibble(self$country_data))
   }
 ))
@@ -95,19 +118,47 @@ land_use <- R6::R6Class(
     total_land_area       = tibble(.rows = 50), 
     land_use_data         = tibble(.rows = 50), 
     # land_use_change_data = tibble(), 
-    set_land_use_type = function(value) {
+    set_land_use_type = function(value) { 
+      #' set_land_use_type 
+      #' 
+      #' @description Sets the land use area type according to FAO land use classification at country-level.
+      #' 
+      #' @param value character land use by type c("cropland", "pasture", "otherland", "forest")
+      #' 
       self$land_use_type <- value
       invisible(self)
     }, 
-    set_land_use_area = function(value) {
+    set_land_use_area = function(value) { 
+      #' set_land_use_area 
+      #' 
+      #' @description Sets the value of land area (hectares) for specified land use type at country-level.
+      #' 
+      #' @param value numeric value of land area (hectares)
+      #' 
       self$land_use_area <- value
       invisible(self)
     }, 
     set_dry_matter_production = function(value) {
+      #' set_dry_matter_production 
+      #' 
+      #' @description Sets the value of dry matter production (tonnes per year) at country-level.
+      #' 
+      #' @param value numeric total tonnes of dry matter per year
+      #' 
       self$dry_matter_production <- value
       invisible(self)
     }, 
     set_land_use_data = function() {
+      #' set_land_use_data 
+      #' 
+      #' @description Data frame container for land use class variables.
+      #' 
+      #' @examples 
+      #' obj <- land_use$new()
+      #' obj$set_iso_alpha3("CAN")
+      #' obj$set_year(2001)
+      #' obj$set_land_use_data()
+      #' 
       x <- tibble(
         iso_alpha3_code       = self$iso_alpha3, 
         fao_countrycode       = self$fao_countrycode, 
@@ -167,52 +218,146 @@ crop <- R6::R6Class(
     other_uses_exports     = NA, 
     crop_data              = tibble(.rows = 50), 
     trade_crop_data        = tibble(.rows = 50), 
-    set_model_group = function(value) {
+    set_model_group = function(value) { 
+      #' set_model_group 
+      #' 
+      #' @description Sets the value of model_group at country-level.
+      #' 
+      #' @param character model group, i.e., model_groups = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
       self$model_group <- value
     }, 
-    set_land_allotted = function(value) {
+    set_land_allotted = function(value) { 
+      #' set_land_allotted 
+      #' 
+      #' @description Sets the value of land area allotted (hectares) to crop at country-level.
+      #' 
+      #' @param character model group, i.e., model_groups = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
+      #' 
       self$ratio_of_land_allotted <- value
     }, 
-    set_harvest_area = function(value) {
+    set_harvest_area = function(value) { 
+      #' set_harvest_area 
+      #' 
+      #' @description Sets the value of land area harvested (hectares) for crop at country-level.
+      #' 
+      #' @param character model group, i.e., model_groups = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
+      #' 
       self$harvest_area <- value
     }, 
-    set_harvest_yield = function(value) {
+    set_harvest_yield = function(value) { 
+      #' set_harvest_yield 
+      #' 
+      #' @description Sets the value of harvested crop yield (tonnes per hectare) at country-level.
+      #' 
+      #' @param character model group, i.e., model_groups = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
+      #' 
       self$harvest_yield <- value
     }, 
-    set_production = function(value) {
+    set_production = function(value) { 
+      #' set_harvest_yield 
+      #' 
+      #' @description Sets the value of crop production (tonnes) at country-level.
+      #' 
+      #' @param character model group, i.e., model_groups = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
+      #' 
       self$production <- value
     }, 
-    set_food_stock = function(value) {
+    set_food_stock = function(value) { 
+      #' set_food_stock 
+      #' 
+      #' @description Sets the value of food intended for human consumption production (tonnes) at country-level.
+      #' 
+      #' @param character model group, i.e., model_groups = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
+      #' 
       self$food_stock <- value
     }, 
-    set_feed_stock = function(value) {
+    set_feed_stock = function(value) { 
+      #' set_feed_stock 
+      #' 
+      #' @description Sets the value of feed intended for animal consumption production (tonnes) at country-level.
+      #' 
+      #' @param character model group, i.e., model_groups = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
+      #' 
       self$feed_stock <- value
     }, 
-    set_seed_stock = function(value) {
+    set_seed_stock = function(value) { 
+      #' set_seed_stock 
+      #' 
+      #' @description Sets the value of seed intended for crop reproduction (tonnes) at country-level.
+      #' 
+      #' @param character model group, i.e., model_groups = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
+      #' 
       self$seed_stock <- value
     }, 
-    set_losses_stock = function(value) {
+    set_losses_stock = function(value) { 
+      #' set_losses_stock 
+      #' 
+      #' @description Sets the value of crop lost or wasted (tonnes) at country-level.
+      #' 
+      #' @param character model group, i.e., model_groups = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
+      #' 
       self$losses_stock <- value
     }, 
-    set_processing_stock = function(value) {
+    set_processing_stock = function(value) { 
+      #' set_processing_stock 
+      #' 
+      #' @description Sets the value of crop allotted for non-food processing (tonnes) purposes at country-level.
+      #' 
+      #' @param character model group, i.e., model_groups = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
+      #' 
       self$processing_stock <- value
     }, 
-    set_other_uses_stock = function(value) {
+    set_other_uses_stock = function(value) { 
+      #' set_other_uses_stock 
+      #' 
+      #' @description Sets the value of crop allotted for non-food other use (tonnes) purposes at country-level.
+      #' 
+      #' @param character model group, i.e., model_groups = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
+      #' 
       self$other_uses_stock <- value
     }, 
-    set_food_imports = function(value) {
+    set_food_imports = function(value) { 
+      #' set_food_imports 
+      #' 
+      #' @description Sets the value of food crops imported (tonnes) at country-level.
+      #' 
+      #' @param character model group, i.e., model_groups = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
+      #' 
       self$food_imports <- value
     }, 
-    set_food_exports = function(value) {
+    set_food_exports = function(value) { 
+      #' set_food_exports 
+      #' 
+      #' @description Sets the value of food crops exported (tonnes) at country-level.
+      #' 
+      #' @param character model group, i.e., model_groups = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
+      #' 
       self$food_exports <- value
     }, 
-    set_feed_imports = function(value) {
+    set_feed_imports = function(value) { 
+      #' set_feed_imports 
+      #' 
+      #' @description Sets the value of feed crops imported (tonnes) at country-level.
+      #' 
+      #' @param character model group, i.e., model_groups = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
+      #' 
       self$feed_imports <- value
     }, 
-    set_feed_exports = function(value) {
+    set_feed_exports = function(value) { 
+      #' set_feed_exports 
+      #' 
+      #' @description Sets the value of feed crops exported (tonnes) at country-level.
+      #' 
+      #' @param character model group, i.e., model_groups = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
+      #' 
       self$feed_exports <- value
     }, 
-    set_crop_data = function() {
+    set_crop_data = function() { 
+      #' set_crop_data 
+      #' 
+      #' @description Appends data frame containing crop data with latest variable values at country-level.
+      #' 
+      #' 
       x = tibble(
         iso_alpha3_code        = self$iso_alpha3, 
         fao_countrycode        = self$fao_countrycode, 
@@ -231,10 +376,19 @@ crop <- R6::R6Class(
       )
       self$crop_data = rbind(self$crop_data, x)
     }, 
-    get_crop_data = function(value) {
+    get_crop_data = function(value) { 
+      #' get_crop_data 
+      #' 
+      #' @description Data frame containing crop data with latest variable values at country-level.
+      #' @return Tibble (data frame) containing crop data at country-level.
+      #' 
       return(as_tibble(self$crop_data))
     }, 
-    set_trade_crop_data = function() {
+    set_trade_crop_data = function() { 
+      #' set_trade_crop_data 
+      #' 
+      #' @description Appends data frame containing crop trade data with latest variable values at country-level.
+      #' 
       x = tibble(
         iso_alpha3_code  = self$iso_alpha3, 
         fao_countrycode  = self$fao_countrycode, 
@@ -247,7 +401,11 @@ crop <- R6::R6Class(
       )
       self$trade_crop_data = rbind(self$trade_crop_data, x)
     }, 
-    get_trade_crop_data = function() {
+    get_trade_crop_data = function() { 
+      #' set_trade_crop_data 
+      #' 
+      #' @description Data frame containing crop trade data with latest variable values at country-level.
+      #' @return Tibble (data frame) containing crop trade data at country-level.
       return(as_tibble(self$trade_crop_data)) 
     }
   )
