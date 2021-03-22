@@ -98,13 +98,15 @@ This prints a tibble containing the instance of country level data.
 
 The Model presently uses the 'docstring' library for documentation. This makes determining the purpose of the Model's various functions easy.
 
-To find documentation associated with a function inside a class, you must (unfortunately) first instantiate an object with the class, then assign the function to some temporary variable, and then use the '?' operator on the temporary variable. An example follows:
+To find documentation associated with a function inside a class, you must (unfortunately) first instantiate an object with the class, then assign the function to some temporary variable, and then use the docstring::docstring() function (or '?' operator from docstring) on the temporary variable. An example follows:
 
 ``` r
-#the '?' operator from docstring appears to get confused by the '$' pointer operator so an extra step is required
+# the '?' operator from docstring appears to get confused by the '$' pointer operator so an extra step is required
 cntry <- country$new()
 cntry$set_iso_alpha3("CAN")
 tmp_var <- cntry$set_iso_alpha3
+docstring(tmp_var)
+# or
 ?tmp_var
 ```
 
@@ -138,3 +140,15 @@ Under package development criteria, each R6 class should have its own separate .
 
 
 #### state_managers.R
+
+The class structure used for the state_managers is a bit of a cheat in order to call functions, which would otherwise be messy. We use the closed environments of each _manager class in the same way a name-space would be used for functions within an R package, e.g., to call function 'fun', we use class_manager$fun instead of package-namespace::fun. Hence, none of these subclass, etc. With time, we expect this to mature, and functions will settle into their appropriate classes just as the state_classes do. 
+
+* R6class::land_use_manager. Manages land use according to FAO land use classifications, with permanent and arable land aggregated into cropland; grasslands and meadows into pasture; any land used for woody matter harvesting (forest, silviculture land, open woodland) into forest; and any other land not otherwise specified into other land, including urban area, bare rock, tundra, etc.
+
+* R6class::crop_manager
+
+* R6class::trade_crop_manager
+
+* R6class::livestock_manager
+
+* R6class::water_footprint_manager
