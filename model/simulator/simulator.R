@@ -165,7 +165,6 @@ wf_df_agg <- wf$get_wf_data() %>%
                       names_to = "wf_type", 
                       values_to = "water_m3_per_yr")
 
-write_csv(wf_df,     path = "~/Projects/iep_food/data/water_footprint/wf_data.csv")
-write_csv(wf_df_agg, path = "~/Projects/iep_food/data/water_footprint/wf_data_aggregated.csv")
+write_csv(wf_df,     path = paste0(output_path, "/wf_data.csv"))
+write_csv(wf_df_agg, path = paste0(output_path, "/wf_data_aggregated.csv"))
 
-tmp <- read_csv("~/Projects/iep_food/data/water_footprint/wf_data.csv")
