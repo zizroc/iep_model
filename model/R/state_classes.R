@@ -561,3 +561,4 @@ water_footprint <- R6::R6Class(
     }
   )
 )
+
