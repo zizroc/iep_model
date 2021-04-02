@@ -37,10 +37,10 @@ Start by cloning this repo to your machine, or clicking 'Code' > 'Download ZIP' 
 From RStudio, use 'Terminal' to set up a new data folder ('/data_iep_model') somewhere else on your machine; i.e., not within the '/iep_model' folder. (It is not necessary to access a terminal from within RStudio. If you are not yet familiar with shell programming, it is convenient to keep everything in one place.) Create a new R script file and paste the following (replacing the tilde as required) to make a path to this folder, viz.
 
 ``` r
-data_path <- "~/data_iep_model"
+data_path <- "~/data_iep_model/"
 data_dir  <- dir(data_path)
 
-model_path <- "~/iep_model"
+model_path <- "~/iep_model/"
 model_dir  <- dir(model_path)
 
 ```
@@ -49,9 +49,21 @@ You must now download and extract data for the Model. Run the 'data_downloader.R
 
 You should now have a set of large data files in their own folders nested within your 'data_path' directory. (You will see these listed as .csv files. Unfortunately, the FAO uses inconsistent conventions when structuring their data; so we will treat these .csv files as raw data that will need to be reshaped to be used by the Model. Reshaping will generally be handled automatically by the '_manager.R' files. Manually reshaped files will need to be added separately, in the next step. When you confirm that the files have downloaded and been extracted properly, you can also take the opportunity to delete the .zip versions of the data files.)
 
+### Installation summary
+
+* clone the iep_model repository into an '/iep_model' folder
+* make '/data_iep_model' folder
+* set the correct path definitions for data_path, data_dir, model_path, model_dir
+* run data_downloader.R script
+* go to '/data_iep_model' and confirm that .zip files have downloaded/extracted correctly
+
 ## Run the model
 
 Start a new R session. 
+
+Run the 'initialize_run.R' script. This sets paths and directories, and loads the necessary package libraries, data files, and class definitions. (The path and directory definitions should be the same as what you defined previously when downloading the Model. If you made changes to these to suit your preferences, change them in the 'initialize_run.R' script as well.)
+
+wip....
 
 ## Example
 
@@ -152,3 +164,12 @@ The class structure used for the state_managers is a bit of a cheat in order to 
 * R6class::livestock_manager
 
 * R6class::water_footprint_manager
+
+### Descriptions of data
+
+#### Land use data 
+Descriptions copied from FAO, 2020. FAOSTAT Land Use domain, http://www.fao.org/faostat/en/#data/RL, Rome, FAO. (Accessed April 1, 2021)
+* Cropland. Land used for cultivation of crops. The total of areas under 'Arable land' and 'Permanent crops'. Arable land is The total of areas under temporary crops, temporary meadows and pastures, and land with temporary fallow. Arable land does not include land that is potentially cultivable but is not normally cultivated. Permanent crops is Land cultivated with long-term crops which do not have to be replanted for several years (such as cocoa and coffee), land under trees and shrubs producing flowers (such as roses and jasmine), and nurseries (except those for forest trees, which should be classified under 'Forestry'). Permanent meadows and pastures are excluded from land under permanent crops.
+* Pasture. Land used permanently (five years or more) to grow herbaceous forage crops through cultivation or naturally (wild prairie or grazing land). Permanent meadows and pastures on which trees and shrubs are grown should be recorded under this heading only if the growing of forage crops is the most important use of the area. Measures may be taken to keep or increase productivity of the land (i.e., use of fertilizers, mowing or systematic grazing by domestic animals.) This class includes: • Grazing in wooded areas (agroforestry areas, for example) • Grazing in shrubby zones (heath, maquis, garigue) • Grassland in the plain or low mountain areas used for grazing: land crossed during transhumance where the animals spend a part of the year (approximately 100 days) without returning to the holding in the evening: mountain and subalpine meadows and similar; and steppes and dry meadows used for pasture.
+* Forest. Land spanning more than 0.5 hectares with trees higher than 5 metres and a canopy cover of more than 10 per cent, or trees able to reach these thresholds in situ. Excludes land that is predominantly under agricultural or urban land use, and land that is predominantly used for maintenance and restoration of environmental function. Explanatory notes: • Forest land is determined both by the presence of trees and by the absence of other predominant land uses. The trees should be able to reach a minimum height of 5 metres in situ • Includes areas with young trees that have not yet reached but that are expected to reach a canopy cover of 10 per cent and tree height of 5 metres. It also includes areas that are temporarily unstocked owing to clear-cutting as part of a forest management practice or natural disasters, and that are expected to be regenerated within five years. Local conditions may, in exceptional cases, justify the use of a longer time frame • Includes forest roads, firebreaks and other small open areas • May include forest land in national parks, nature reserves and other protected areas, such as those of specific environmental, scientific, historical, cultural or spiritual interest • Includes windbreaks, shelter belts and corridors of trees with an area of more than 0.5 hectares and width of more than 20 metres • Includes abandoned shifting cultivation land with a regeneration of trees that have, or is expected to reach, a canopy cover of 10 per cent and tree height of 5 metres • Includes areas with mangroves in tidal zones, regardless of whether this area is classified as land area or not • Includes areas with bamboo and palms provided that land use, height and canopy cover criteria are met • Some agroforestry systems such as the taungya system, where crops are grown only during the first years of the forest rotation should be classified as forest • Excludes: tree stands in agricultural production systems, such as fruit-tree plantations (→Permanent crops), oil palm plantations, rubber and Christmas trees (→Permanent crops) and agroforestry systems when crops are grown under tree cover
+* Other land. Land area not classified as 'Agriculture' and 'Forestry'. It includes SEEA categories 'Land used for aquaculture,' 'Built-up and related areas', 'Land Use for maintenance and restoration of environmental functions,' 'Other uses of land not elsewhere classified,' and 'Land not in use.'
