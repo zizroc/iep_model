@@ -27,7 +27,7 @@ livestock_policy_df <- data.frame (
 land_use_manager <- R6::R6Class(
   "land_use_manager", 
   list(
-    land_use_area  = function(iso3, year_index, use_group, df = NULL) { 
+    land_use_area  = function(iso3, year_index, use_group, land_use_policy_df = NULL) { 
       #' land_use_area 
       #' 
       #' @description Calculates area (hectares) under management of specified land use
@@ -35,24 +35,25 @@ land_use_manager <- R6::R6Class(
       #' @param iso3 character ISO Alpha-3 code
       #' @param year_index numerical year
       #' @param use_group character string land use type c("cropland", "permanent_cropland", "arable_land", "pasture", "forest", "otherland")
+      #' @param land_use_policy_df Data frame containing land use change values (must be exogenously set)
       if(year_index == 2000) {
-        x <- historical_land_use_data %>% 
+        luc <- historical_land_use_data %>% 
           dplyr::filter(iso_alpha3_code == iso3 & year == 2000 & land_use_type == use_group) %>% 
           dplyr::pull(land_use_area)
         
-        if(length(x) != 0) {
-          return(x)
+        if(length(luc) != 0) {
+          return(luc)
         } else {
           return(0)
         }
       } else {
         # df <- land_use_data
-        x  <- df %>% 
+        luc  <- land_use_policy_df %>% 
           dplyr::filter(iso_alpha3_code == iso3 & year == year_index-1 & land_use_type == use_group) %>% 
           dplyr::pull(land_use_area) 
         
         # dx <- land_use_area_change_df
-        dx <- 0 #temporarily set to zero LUC
+        delta_luc <- 0 #temporarily set to zero LUC
         
         if(length(x) != 0) {
           return(x + x*dx)
@@ -97,7 +98,7 @@ crop_manager <- R6::R6Class(
       #' @param year_index numerical Year
       #' @param crop_group character Crop type, e.g., c("cereal", "pulse", "oilcrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
       #' @param land_use_area_df numeric Data frame passed from land_use module. Value is cropland area harvested, minus fallow land. Used for year > 2000.
-      #' @param crop_policy_df Data frame containing crop yield change values (must be extrinsically set)
+      #' @param crop_policy_df Data frame containing crop yield change values (must be exogenously set)
       #' @return hectares harvested for given parameters
       area_used <- land_use_area_df %>% 
         dplyr::filter(iso_alpha3_code == iso3 & year == year_index & land_use_type == "cropland") %>% 
@@ -242,7 +243,7 @@ crop_manager <- R6::R6Class(
         #this is where feedback logic will go
         
         rel_dom_prod      <- crop_data_df %>% 
-          dplyr::filter(fao_countrycode == fao_countrycode & year == year_index-1 & model_group = crop_group) %>% 
+          dplyr::filter(fao_countrycode == fao_countrycode & year == year_index-1 & model_group == crop_group) %>% 
           dplyr::select(paste0(crop_use, "_stock"), production) %>% 
           dplyr::mutate(allocated_ratio = .[1]/production) %>% 
           dplyr::pull(allocated_ratio) %>% 
