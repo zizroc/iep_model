@@ -1,4 +1,5 @@
 # initialize_run.R
+#run this first
 
 #Before you begin, set data_path and model_path to those on your local machine
 data_path   <- "~/Data/IEP_Model/data_iep_model/"
@@ -17,6 +18,7 @@ output_dir  <- dir(output_path)
 source(paste0(data_path, "R/libraries_list.R"))
 
 #data
+source("~/Projects/IEP_2/Model/dev/R_files/data/base_data.R") 
 source("~/Projects/IEP_2/Model/dev/R_files/data/policy_data.R") 
 source("~/Projects/IEP_2/Model/dev/R_files/data/water_footprint_data.R")
 
