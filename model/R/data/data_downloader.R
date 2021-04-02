@@ -31,7 +31,8 @@ data_file_labels <- c(
   "FoodSupply_LivestockFish_E_All_Data_(Normalized)", 
   "Emissions_Agriculture_Enteric_Fermentation_E_All_Data_(Normalized)", 
   "Emissions_Agriculture_Manure_Management_E_All_Data_(Normalized)", 
-  "Forestry_E_All_Data_(Normalized)"
+  "Forestry_E_All_Data_(Normalized)", 
+  "Inputs_LandUse_E_All_Data_(Normalized)"
 )
 
 # downloads files into /data_iep_model
