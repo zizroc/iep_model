@@ -4,7 +4,7 @@ library(R6)
 library(tidyverse)
 
 #data
-source(paste0(data_path, "/R/map_data.R"))
+source(paste0(script_path, "map_data.R"))
 
 country <- R6::R6Class(
   "country", 
