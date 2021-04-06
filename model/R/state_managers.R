@@ -27,36 +27,37 @@ livestock_policy_df <- data.frame (
 land_use_manager <- R6::R6Class(
   "land_use_manager", 
   list(
-    land_use_area  = function(iso3, year_index, use_group, land_use_policy_df = NULL) { 
+    land_use_area  = function(iso3, year_index, use_group, land_use_data = NULL, land_use_policy_df = NULL) { 
       #' land_use_area 
       #' 
       #' @description Calculates area (hectares) under management of specified land use
       #' 
       #' @param iso3 character ISO Alpha-3 code
       #' @param year_index numerical year
-      #' @param use_group character string land use type c("cropland", "permanent_cropland", "arable_land", "pasture", "forest", "otherland")
+      #' @param use_group character string land use type c("cropland", "pasture", "forest", "otherland") 
+      #' @param land_use_data_df Data frame passed from land_use class
       #' @param land_use_policy_df Data frame containing land use change values (must be exogenously set)
       if(year_index == 2000) {
-        luc <- historical_land_use_data %>% 
-          dplyr::filter(iso_alpha3_code == iso3 & year == 2000 & land_use_type == use_group) %>% 
-          dplyr::pull(land_use_area)
+        lua <- landuse_area %>% 
+          dplyr::filter(iso_alpha3 == iso3 & year == 2000 & land_use_type == use_group) %>% 
+          dplyr::pull(area_ha)
         
-        if(length(luc) != 0) {
-          return(luc)
+        if(length(lua) != 0) {
+          return(lua)
         } else {
           return(0)
         }
       } else {
         # df <- land_use_data
-        luc  <- land_use_policy_df %>% 
+        lua  <- land_use_data_df %>% 
           dplyr::filter(iso_alpha3_code == iso3 & year == year_index-1 & land_use_type == use_group) %>% 
           dplyr::pull(land_use_area) 
         
         # dx <- land_use_area_change_df
-        delta_luc <- 0 #temporarily set to zero LUC
+        delta_lua <- 0 #temporarily set to zero LUC
         
-        if(length(x) != 0) {
-          return(x + x*dx)
+        if(length(lua) != 0) {
+          return(lua + lua*delta_lua)
         } else {
           return(0)
         }
@@ -458,26 +459,50 @@ livestock_manager <- R6::R6Class(
       #' 
       #' @description Manages the feed dry matter (DM) and crude protein (CP) demands of livestock based on feed conversion rate (FCR)
       #' 
+      #' @details The numbers in livestock_feed_df are amalgamated from several sources, given in references. Aves: NRC (1994), Miller (2004). Bovines: Kassam et al. (1991), Miller (2004); for  
+      #' 
       #' TODO make this less janky
       #' 
-      #' @param live_group character Livestock group, e.g., livestock_group = c("aves", "beehive", "bovine", "camelid", "caprine", "rodentia", "sus", "fish")
+      #' @param live_group character Livestock group, e.g., livestock_group = c("aves", "bovine", "camelid", "caprine", "equine", "fish", "insecta", "rodentia", "sus")
       #' @param feed_matter character Feed conversion ratio (FCR) or crude protein (CP) e.g., feed_type = c("FCR", "CP")
-      #' @return numerical (for FCR, tonnes of DM per livestock tonne or, for CP, proportion between 0 and 1)
-      x <- livestock_feed_summary_ave %>% 
-        dplyr::filter(model_group == live_group)
+      #' @return numerical (for FCR, multiplier of DM in tonnes per livestock tonne or, for CP, proportion between 0 and 1)
+      #' @references Alexander, P., Brown, C., Arneth, A., Dias, C., Finnigan, J., Moran, D. and Rounsevell, M.D. (2017). Could consumption of insects, cultured meat or imitation meat reduce global agricultural land use?. Global Food Security, 15, pp.22-32. 
+      #' Alexander, P., Brown, C., Arneth, A., Finnigan, J., Moran, D., & Rounsevell, M. D. (2017). Losses, inefficiencies and waste in the global food system. Agricultural systems, 153, 190-200.https://doi.org/10.1016/j.agsy.2017.01.014
+      #' Anderson, T., Hoffman, P. (2006). Focus On Forage, 8(1). 
+      #' Halls, A. E. (2010). Nutritional Requirements for Rabbits. Shur-Gain, Nutreco Canada Inc.
+      #' Miller, E.L. (2004). Protein nutrition requirements of farmed livestock and dietary supply. In Protein sources for the animal feed industry, expert consultation and workshop, Bangkok (pp. 29-76). Rome: Food and Agriculture Organization of the United Nations.
+      #' New, M. (1987). Feed and feeding of fish and shrimp: A manual on the preparation and presentation of compound feeds for shrimp and fish in aquaculture. (No. F009. 102). FAO.
+      #' Novak, S., Shoveller, A. K., Warren, L. K. (2008). Nutrition and Feeding Management for Horse Owners. Alberta Agriculture and Rural Development, Edmonton.
+      #' National Research Council, (1994). Nutrient Requirements of Poultry Ninth Revised Edition National Academy Press. Washington DC.
+      #' Rashid, M. (2008). Goats and Their Nutrition. Manitoba Goat Association, Manitoba Agriculture, Food and Rural Initiatives. March.
+      #' Sheep Nutrition Fact Sheet (n.d.). Saskatchewan Sheep Development Board & Saskatchewan Ministry of Agriculture, Saskatoon.
+      #' Van Huis, A., Van Itterbeeck, J., Klunder, H., Mertens, E., Halloran, A., Muir, G. and Vantomme, P. (2013). Edible insects: future prospects for food and feed security (No. 171). Food and Agriculture Organization of the United Nations.
+      #' Vasal, S.K. (2004). The role of high lysine cereals in animal and human nutrition in Asia. Protein sources for the animal feed industry. Rome: FAO, pp.167-184.
+      #' Wilson, J.G. (2002). Productivity, fisheries and aquaculture in temperate estuaries. Estuarine, Coastal and Shelf Science, 55(6), pp.953-967.
+      #' McGregor, B. (2007). Meat and Offal Yields of Goats, Agriculture Victoria. http://agriculture.vic.gov.au/agriculture/livestock/goats/production/meat-and-offal-yields-of-goats#:~:text=The%20mean%20live%20weight%20of,and%20sampled%20for%20chemical%20analyses.
+      #' Agriculture Victoria. (2017). Feedlotting Lambs, Agriculture Victoria. http://agriculture.vic.gov.au/agriculture/livestock/sheep/feeding-and-nutrition/feedlotting-lambs
+      #' Hashi, A.M., Kamoun, M. and Cianci, D. (1995). Feed requirements of the camel. Elevage et alimentation du dromadaire. Zaragoza: CIHEAM, pp.71-80.
+      livestock_feed_df <- tibble(
+        livestock_group = c("aves", "bovine", "camelid", "caprine", "equine", "fish", "insecta", "rodentia", "sus"), 
+        CP  = c(0.2, 0.11, 0.11, 0.112, 0.113, 0.62, 0.1, 0.15, 0.2), 
+        FCR = c(2, 6, 6.5, 5, 6, 1.5, 1.68, 3, 3)
+      )
+      x <- livestock_feed_df %>% 
+        dplyr::filter(livestock_group == live_group)
       if(feed_matter == "CP") {
-        return(x %>% 
-                 dplyr::pull(CP_ratio_of_DM))
+        x <- x %>% 
+          dplyr::pull(CP)
+        return(x)
       } else if(feed_matter == "FCR") {
         x <- x %>% 
           dplyr::pull(FCR)
         if(length(x) != 0) {
           return(x)
         } else {
-          return(0)
+          return("Error: check feed_type. Must be CP or FCR.") 
         }
       } else {
-        return(0)
+        return("Error: check live_type.") 
       }
     }, 
     herd_tlu = function(live_group, tlu_def_df = NULL) { 
@@ -582,3 +607,4 @@ water_footprint_manager <- R6::R6Class(
     }
   )
 )
+
