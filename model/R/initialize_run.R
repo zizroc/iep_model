@@ -19,8 +19,8 @@ source(paste0(data_path, "R/libraries_list.R"))
 
 #data
 source("~/Projects/IEP_2/Model/dev/R_files/data/base_data.R") 
-source("~/Projects/IEP_2/Model/dev/R_files/data/policy_data.R") 
-source("~/Projects/IEP_2/Model/dev/R_files/data/water_footprint_data.R")
+# source("~/Projects/IEP_2/Model/dev/R_files/data/policy_data.R") 
+source(paste0(script_path, "water_footprint_data.R"))
 
 #state classes
 source("~/Projects/IEP_2/Model/dev/R_files/state_classes.R")
