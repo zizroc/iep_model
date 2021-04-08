@@ -2,8 +2,8 @@
 
 
 
-time_frame     <- c(2000:2005)
-land_use_types <- c("cropland", "permanent_cropland", "arable_land", "pasture", "forest", "otherland")
+time_frame     <- c(2000:2001)
+land_use_types <- c("cropland", "fallow_cropland", "pasture", "forest", "otherland")
 crop_types     <- c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
 live_types     <- c(  "aves", "bovine", "camelid",   "caprine",      "equine",  "rodentia",   "sus",   "fish")
 live_use_group <- c( "dairy",   "meat",   "other")
@@ -14,71 +14,85 @@ iso_codes      <- c("CHN")
 
 for(year_index in time_frame) {
   for(iso_code in iso_codes) {
+    
+    #constructor module
+    if(year_index == 2000) {
+      lu      <- land_use$new()
+      lu_mng  <- land_use_manager$new()
+      crp     <- crop$new()
+      crp_mng <- crop_manager$new()
+      trd_crp <- trade_crop_manager$new()
+      liv     <- livestock$new()
+      liv_mng <- livestock_manager$new()
+      wf      <- water_footprint$new() 
+      wf_mng  <- water_footprint_manager$new()
+    }
+    
     #population module
     
     #land use module 1
-    if(year_index == 2000) {
-      lu     <- land_use$new()
-      lu_mng <- land_use_manager$new()
-    }
+    # if(year_index == 2000) {
+    #   lu     <- land_use$new()
+    #   lu_mng <- land_use_manager$new()
+    # }
     lu$set_year(year_index)
     lu$set_iso_alpha3(iso_code)
     for(lu_type in land_use_types) {
       lu$set_land_use_type(lu_type)
-      lu$set_land_use_area(lu_mng$land_use_area(lu$fao_countrycode, lu$year, lu$land_use_type, df = lu$get_land_use_data()))
+      lu$set_land_use_area(lu_mng$land_use_area(lu$iso_alpha3, lu$year, lu$land_use_type, land_use_data_df = lu$get_land_use_data(), policy_df = land_use_policy_df))
       lu$set_dry_matter_production(lu_mng$dry_matter_productivity(lu$land_use_type))
       lu$set_land_use_data()
     }
     
     #crop module 1
-    if(year_index == 2000) {
-      crp     <- crop$new()
-      crp_mng <- crop_manager$new()
-      trd_crp <- trade_crop_manager$new()
-    }
+    # if(year_index == 2000) {
+    #   crp     <- crop$new()
+    #   crp_mng <- crop_manager$new()
+    #   trd_crp <- trade_crop_manager$new()
+    # }
     crp$set_year(year_index)
     crp$set_iso_alpha3(iso_code)
     for(crop_type in crop_types){
       crp$set_model_group(crop_type)
-      crp$set_land_alloted(crp_mng$manage_cropland_allotment(crp$fao_countrycode, crp$year, crp$model_group))
-      crp$set_harvest_area(crp_mng$manage_harvest_area(crp$fao_countrycode, crp$year, crp$model_group, df1 = lu$get_land_use_data(), df2 = crp$ratio_of_land_alloted))
-      crp$set_harvest_yield(crp_mng$manage_harvest_yield(crp$fao_countrycode, crp$year, crp$model_group, df = crp$get_crop_data()))
-      crp$set_production(crp_mng$manage_production(crp$harvest_area, crp$harvest_yield))
-      crp$set_food_stock(crp$production*crp_mng$manage_crop_allocation(crp$fao_countrycode, crp$year, crp$model_group, "food"))
-      crp$set_feed_stock(crp$production*crp_mng$manage_crop_allocation(crp$fao_countrycode, crp$year, crp$model_group, "feed"))
-      crp$set_seed_stock(crp$production*crp_mng$manage_crop_allocation(crp$fao_countrycode, crp$year, crp$model_group, "seed"))
-      crp$set_losses_stock(crp$production*crp_mng$manage_crop_allocation(crp$fao_countrycode, crp$year, crp$model_group, "loss")) 
-      crp$set_processing_stock(crp$production*crp_mng$manage_crop_allocation(crp$fao_countrycode, crp$year, crp$model_group, "proc"))
-      crp$set_other_uses_stock(crp$production*crp_mng$manage_crop_allocation(crp$fao_countrycode, crp$year, crp$model_group, "othe"))
+      # crp$set_land_alloted(crp_mng$cropland_allotment(crp$iso_alpha3, crp$year, crp$model_group))
+      crp$set_harvest_area(crp_mng$harvest_area(crp$iso_alpha3, crp$year, crp$model_group, land_use_area_df = lu$get_land_use_data(), policy_df = crop_policy_df))
+      crp$set_harvest_yield(crp_mng$harvest_yield(crp$iso_alpha3, crp$year, crp$model_group, crop_data_df = crp$get_crop_data(), policy_df = crop_policy_df))
+      crp$set_production(crp_mng$crop_production(crp$harvest_area, crp$harvest_yield))
+      crp$set_food_stock(crp$production*crp_mng$crop_allocation(crp$iso_alpha3, crp$year, crp$model_group, "food"))
+      crp$set_feed_stock(crp$production*crp_mng$crop_allocation(crp$iso_alpha3, crp$year, crp$model_group, "feed"))
+      crp$set_seed_stock(crp$production*crp_mng$crop_allocation(crp$iso_alpha3, crp$year, crp$model_group, "seed"))
+      crp$set_losses_stock(crp$production*crp_mng$crop_allocation(crp$iso_alpha3, crp$year, crp$model_group, "loss")) 
+      crp$set_processing_stock(crp$production*crp_mng$crop_allocation(crp$iso_alpha3, crp$year, crp$model_group, "proc"))
+      crp$set_other_uses_stock(crp$production*crp_mng$crop_allocation(crp$iso_alpha3, crp$year, crp$model_group, "othe"))
       crp$set_country_data()
       crp$set_crop_data()
     }
     
     
     #livestock module 1
-    if(year_index == 2000) {
-      liv     <- livestock$new()
-      liv_mng <- livestock_manager$new()
-    }
+    # if(year_index == 2000) {
+    #   liv     <- livestock$new()
+    #   liv_mng <- livestock_manager$new()
+    # }
     liv$set_year(year_index)
     liv$set_iso_alpha3(iso_code)
     for(live_type in live_types) {
       liv$set_model_group(live_type)
       liv$set_herd_tlu(liv_mng$herd_tlu(liv$model_group))
-      liv$set_stock_growth_rate(liv_mng$growth_rate(liv$fao_countrycode, liv$year, liv$model_group, df = liv$get_livestock_data()))
-      liv$set_dairy_stock_quantity(liv_mng$product_usage(liv$model_group, "dairy")*liv_mng$quantity(liv$fao_countrycode, liv$year, liv$model_group, df = liv$get_livestock_data()))
-      liv$set_meat_stock_quantity(liv_mng$product_usage(liv$model_group,   "meat")*liv_mng$quantity(liv$fao_countrycode, liv$year, liv$model_group, df = liv$get_livestock_data()))
-      liv$set_other_stock_quantity(liv_mng$product_usage(liv$model_group, "other")*liv_mng$quantity(liv$fao_countrycode, liv$year, liv$model_group, df = liv$get_livestock_data()))
-      liv$set_feed_drymatter_demand(liv_mng$feed_demand(liv$model_group, "DM"))
+      # liv$set_stock_growth_rate(liv_mng$growth_rate(liv$iso_alpha3, liv$year, liv$model_group, df = liv$get_livestock_data()))
+      liv$set_dairy_stock_quantity(liv_mng$product_usage(liv$model_group, "dairy")*liv_mng$quantity(liv$iso_alpha3, liv$year, liv$model_group, livestock_data_df = liv$get_livestock_data(), policy_df = livestock_policy_df))
+      liv$set_meat_stock_quantity(liv_mng$product_usage(liv$model_group,   "meat")*liv_mng$quantity(liv$iso_alpha3, liv$year, liv$model_group, livestock_data_df = liv$get_livestock_data(), policy_df = livestock_policy_df))
+      liv$set_other_stock_quantity(liv_mng$product_usage(liv$model_group, "other")*liv_mng$quantity(liv$iso_alpha3, liv$year, liv$model_group, livestock_data_df = liv$get_livestock_data(), policy_df = livestock_policy_df))
+      liv$set_feed_drymatter_demand(liv_mng$feed_demand(liv$model_group, "FCR"))
       liv$set_feed_drymatter_demand(liv$feed_drymatter_demand*liv_mng$feed_demand(liv$model_group, "CP"))
       liv$set_livestock_data()
     }
     
     #water demand (footprint) module 1 
-    if(year_index == 2000) {
-      wf     <- water_footprint$new() 
-      wf_mng <- water_footprint_manager$new()
-    }
+    # if(year_index == 2000) {
+    #   wf     <- water_footprint$new() 
+    #   wf_mng <- water_footprint_manager$new()
+    # }
     wf$set_year(year_index)
     wf$set_iso_alpha3(iso_code)
     for(crop_type in crop_types) {
@@ -100,10 +114,10 @@ for(year_index in time_frame) {
     #trade: crop module 2
     for(crop_type in crop_types){ 
       crp$set_model_group(crop_type)
-      crp$set_food_imports(trd_crp$imports(crp$fao_countrycode, crp$year, crp$model_group, "food", df = crp$get_trade_crop_data()))
-      crp$set_feed_imports(trd_crp$imports(crp$fao_countrycode, crp$year, crp$model_group, "feed", df = crp$get_trade_crop_data()))
-      crp$set_food_exports(trd_crp$exports(crp$fao_countrycode, crp$year, crp$model_group, "food", df = crp$get_trade_crop_data()))
-      crp$set_feed_exports(trd_crp$exports(crp$fao_countrycode, crp$year, crp$model_group, "feed", df = crp$get_trade_crop_data()))
+      crp$set_food_imports(trd_crp$imports(crp$iso_alpha3, crp$year, crp$model_group, "food", trade_crop_data_df = crp$get_trade_crop_data()))
+      crp$set_feed_imports(trd_crp$imports(crp$iso_alpha3, crp$year, crp$model_group, "feed", trade_crop_data_df = crp$get_trade_crop_data()))
+      crp$set_food_exports(trd_crp$exports(crp$iso_alpha3, crp$year, crp$model_group, "food", trade_crop_data_df = crp$get_trade_crop_data()))
+      crp$set_feed_exports(trd_crp$exports(crp$iso_alpha3, crp$year, crp$model_group, "feed", trade_crop_data_df = crp$get_trade_crop_data()))
       crp$set_trade_crop_data()
     }
     
