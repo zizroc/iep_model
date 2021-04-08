@@ -19,7 +19,7 @@ country <- R6::R6Class(
   country_data    = NULL, 
   initialize = function(
     year         = 2000, 
-    country_data = data.frame(.rows = 50)
+    country_data = tibble(.rows = 50)
     ) {
     self$year         <- year
     self$country_data <- country_data
@@ -88,7 +88,8 @@ country <- R6::R6Class(
       subregion_id_code_un = self$subregioncode, 
       year                 = self$year
     )
-    self$country_data <- rbind(self$country_data, x)
+    self$country_data <- self$country_data %>% 
+                                 bind_rows(x)
   }, 
   get_country_data = function() {
     #' get_country_data 
@@ -123,7 +124,7 @@ land_use <- R6::R6Class(
       #' 
       #' @description Sets the land use area type according to FAO land use classification at country-level.
       #' 
-      #' @param value character land use by type c("cropland", "pasture", "otherland", "forest")
+      #' @param value character land use by type c("cropland", "fallow_cropland", "pasture", "otherland", "forest")
       #' 
       self$land_use_type <- value
       invisible(self)
