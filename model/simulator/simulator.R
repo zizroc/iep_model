@@ -11,30 +11,54 @@ model_groups   <- c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "
 # iso_codes      <- c("ARG", "CAN", "CHN", "MEX")
 iso_codes      <- c("CHN")
 
+construct_model_objects = function() {
+  #' construct_model_objects 
+  #' 
+  #' @description Runs the class constructors.
+  #' 
+  #' @details This function instantiates Model objects for the year 2000, the initial run year. Each class_object is associated with one or more class 
+  #' manager objects. All Model objects are defined in the state_classes.R and state_managers.R files.
+  #' 
+  #' @returns Set of Model objects, e.g., for land use, water footprint, trade, etc.
+  #' 
+  if(year_index == 2000) {
+    # state classes
+    pop     <- population$new()
+    lu      <- land_use$new()
+    crp     <- crop$new()
+    liv     <- livestock$new()
+    wf      <- water_footprint$new() 
+    
+    # state manager classes
+    pop_mng <- population_manager$new()
+    lu_mng  <- land_use_manager$new()
+    crp_mng <- crop_manager$new()
+    trd_crp <- trade_crop_manager$new()
+    liv_mng <- livestock_manager$new()
+    wf_mng  <- water_footprint_manager$new()
+  }
+}
 
+# simulator
 for(year_index in time_frame) {
   for(iso_code in iso_codes) {
     
-    #constructor module
-    if(year_index == 2000) {
-      lu      <- land_use$new()
-      lu_mng  <- land_use_manager$new()
-      crp     <- crop$new()
-      crp_mng <- crop_manager$new()
-      trd_crp <- trade_crop_manager$new()
-      liv     <- livestock$new()
-      liv_mng <- livestock_manager$new()
-      wf      <- water_footprint$new() 
-      wf_mng  <- water_footprint_manager$new()
-    }
+    construct_model_objects()
     
-    #population module
+    #population module 1
+    pop$set_year(year_index)
+    pop$set_iso_alpha3(iso_code)
+    pop$set_population(
+      pop_mng$population(
+        pop$iso_alpha3, 
+        pop$year, 
+        population_data_df = pop$get_population_data(), 
+        policy_df = population_policy_df
+        )
+      )
+    pop$set_population_data()
     
     #land use module 1
-    # if(year_index == 2000) {
-    #   lu     <- land_use$new()
-    #   lu_mng <- land_use_manager$new()
-    # }
     lu$set_year(year_index)
     lu$set_iso_alpha3(iso_code)
     for(lu_type in land_use_types) {
@@ -45,16 +69,10 @@ for(year_index in time_frame) {
     }
     
     #crop module 1
-    # if(year_index == 2000) {
-    #   crp     <- crop$new()
-    #   crp_mng <- crop_manager$new()
-    #   trd_crp <- trade_crop_manager$new()
-    # }
     crp$set_year(year_index)
     crp$set_iso_alpha3(iso_code)
     for(crop_type in crop_types){
       crp$set_model_group(crop_type)
-      # crp$set_land_alloted(crp_mng$cropland_allotment(crp$iso_alpha3, crp$year, crp$model_group))
       crp$set_harvest_area(crp_mng$harvest_area(crp$iso_alpha3, crp$year, crp$model_group, land_use_area_df = lu$get_land_use_data(), policy_df = crop_policy_df))
       crp$set_harvest_yield(crp_mng$harvest_yield(crp$iso_alpha3, crp$year, crp$model_group, crop_data_df = crp$get_crop_data(), policy_df = crop_policy_df))
       crp$set_production(crp_mng$crop_production(crp$harvest_area, crp$harvest_yield))
@@ -70,10 +88,6 @@ for(year_index in time_frame) {
     
     
     #livestock module 1
-    # if(year_index == 2000) {
-    #   liv     <- livestock$new()
-    #   liv_mng <- livestock_manager$new()
-    # }
     liv$set_year(year_index)
     liv$set_iso_alpha3(iso_code)
     for(live_type in live_types) {
@@ -89,10 +103,6 @@ for(year_index in time_frame) {
     }
     
     #water demand (footprint) module 1 
-    # if(year_index == 2000) {
-    #   wf     <- water_footprint$new() 
-    #   wf_mng <- water_footprint_manager$new()
-    # }
     wf$set_year(year_index)
     wf$set_iso_alpha3(iso_code)
     for(crop_type in crop_types) {
@@ -147,6 +157,18 @@ for(year_index in time_frame) {
       rm(net_trade)
     }
     
+    #population module 2
+    #' TODO add net migration to population module
+    # pop$set_migration(
+    #   pop_mng$net_migration(
+    #     pop$iso_alpha3, 
+    #     pop$year, 
+    #     population_data_df = pop$get_migration_data(), 
+    #     policy_df = migration_policy_df
+    #   )
+    # )
+    # pop$set_migration_data()
+    
     #reporting module
     #' TODO figure out why this is double-reporting the last country
     # if(iso_code == max(iso_codes) & i == length(time_frame)) {
@@ -162,23 +184,23 @@ for(year_index in time_frame) {
   }
 }
 
-wf_df <- wf$get_wf_data() %>% 
-  dplyr::full_join(wf$get_traded_wf_data()) 
-
-wf_df_agg <- wf$get_wf_data() %>% 
-  dplyr::full_join(wf$get_traded_wf_data()) %>% 
-  dplyr::group_by(iso_alpha3_code, fao_countrycode, year) %>% 
-  dplyr::summarize(blue_wf = sum(blue_wf, 
-                                  na.rm = TRUE), 
-                   green_wf = sum(green_wf, 
-                                  na.rm = TRUE),
-                   grey_wf = sum(grey_wf, 
-                                  na.rm = TRUE)) %>% 
-  tidyr::pivot_longer(., 
-                      cols = blue_wf:grey_wf, 
-                      names_to = "wf_type", 
-                      values_to = "water_m3_per_yr")
-
-write_csv(wf_df,     path = paste0(output_path, "/wf_data.csv"))
-write_csv(wf_df_agg, path = paste0(output_path, "/wf_data_aggregated.csv"))
+# wf_df <- wf$get_wf_data() %>% 
+#   dplyr::full_join(wf$get_traded_wf_data()) 
+# 
+# wf_df_agg <- wf$get_wf_data() %>% 
+#   dplyr::full_join(wf$get_traded_wf_data()) %>% 
+#   dplyr::group_by(iso_alpha3_code, fao_countrycode, year) %>% 
+#   dplyr::summarize(blue_wf = sum(blue_wf, 
+#                                   na.rm = TRUE), 
+#                    green_wf = sum(green_wf, 
+#                                   na.rm = TRUE),
+#                    grey_wf = sum(grey_wf, 
+#                                   na.rm = TRUE)) %>% 
+#   tidyr::pivot_longer(., 
+#                       cols = blue_wf:grey_wf, 
+#                       names_to = "wf_type", 
+#                       values_to = "water_m3_per_yr")
+# 
+# write_csv(wf_df,     path = paste0(output_path, "/wf_data.csv"))
+# write_csv(wf_df_agg, path = paste0(output_path, "/wf_data_aggregated.csv"))
 
