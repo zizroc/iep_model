@@ -79,7 +79,7 @@ country <- R6::R6Class(
     #' obj$set_year(2001)
     #' obj$set_country_data()
     #' 
-    x = tibble(
+    df = tibble(
       country_name         = self$countryname, 
       iso_alpha3_code      = self$iso_alpha3, 
       fao_countrycode      = self$fao_countrycode, 
@@ -89,7 +89,7 @@ country <- R6::R6Class(
       year                 = self$year
     )
     self$country_data <- self$country_data %>% 
-                                 bind_rows(x)
+                                 bind_rows(df)
   }, 
   get_country_data = function() {
     #' get_country_data 
@@ -97,16 +97,101 @@ country <- R6::R6Class(
     #' @description Data frame container for country class variables.
     #' 
     #' @return Tibble (data frame) of all country class data set so far.
-    #' @examples 
-    #' obj <- country$new()
-    #' obj$set_iso_alpha3("CAN")
-    #' obj$set_year(2001)
-    #' obj$set_country_data()
-    #' obj$get_country_data()
     #' 
     return(as_tibble(self$country_data))
   }
 ))
+
+#population module
+population <- R6::R6Class(
+  "population", 
+  inherit = country, 
+  list(
+    population = NA, 
+    cgr = NA, 
+    net_migration = NA, 
+    cnmr = NA, 
+    population_data = tibble(), 
+    migration_data = tibble(), 
+    set_population = function(value) {
+      #' set_population 
+      #' 
+      #' @description Sets the population for specified country.
+      self$population <- value
+      invisible(self)
+    }, 
+    set_cgr = function(value) {
+      #' set_cgr 
+      #' 
+      #' @description Sets the crude growth rate of the population (birth minus death rate).
+      #' 
+      #' @details Defined as CGR = (number of live births - number of deaths)/(mid-year population * 1e4).
+      self$cgr <- value
+      invisible(self)
+    }, 
+    set_migration = function(value) {
+      #' set_migration 
+      #' 
+      #' @description Sets the net migration (number of immigrants minus number of emigrants) for specified country.
+      self$net_migration <- value
+      invisible(self)
+    },
+    set_cnmr = function(value) {
+      #' set_cnmr 
+      #' 
+      #' @description Sets the crude net migration rate of the population.
+      #' 
+      #' @details Defined as CNMR = (number of immigrants - number of emigrants)/(mid-year population * 1e4).
+      self$cnmr <- value
+      invisible(self)
+    }, 
+    set_population_data = function() {
+      #' set_population_data 
+      #' 
+      #' @description Data frame container for population variables.
+      #' 
+      #' @examples 
+      #' obj <- population$new()
+      #' obj$set_iso_alpha3("CAN")
+      #' obj$set_year(2001)
+      #' obj$set_population_data()
+      #' 
+      df <- tibble(
+        population = self$population, 
+        cgr        = self$cgr
+      )
+      self$population_data = self$population_data %>% 
+        bind_rows(df)
+      invisible(self)
+    }, 
+    get_population_data = function() {
+      #' get_population_data 
+      #' 
+      #' @returns Tibble of historical population variables.
+      return(as_tibble(self$population_data))
+      invisible(self)
+    }, 
+    set_migration_data = function() {
+      #' set_migration_data 
+      #' 
+      #' @description Data frame container for migration variables.
+      #' 
+      df <- tibble(
+        net_migration = self$net_migration, 
+        cnmr          = self$cnmr
+      )
+      self$migration_data = self$migration_data %>% 
+        bind_rows(df)
+      invisible(self)
+    }, 
+    get_migration_data = function() {
+      #' get_migration_data 
+      #' 
+      #' @returns Tibble of historical migration variables.
+      return(as_tibble(self$migration_data))
+      invisible(self)
+    }
+  ))
 
 #land use module
 land_use <- R6::R6Class(
