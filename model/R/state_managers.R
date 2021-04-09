@@ -2,6 +2,18 @@
 library(roxygen2)
 library(docstring)
 
+population_policy_df <- data.frame (
+  iso_alpha3_code = "CHN", 
+  year            = 2001, 
+  cgr             = 0.01
+)
+
+migration_policy_df <- data.frame (
+  iso_alpha3_code = "CHN", 
+  year            = 2001, 
+  net_migration   = 0.01
+)
+
 land_use_policy_df <- data.frame (
   iso_alpha3_code        = "CHN", 
   year                   = 2001, 
@@ -23,6 +35,90 @@ livestock_policy_df <- data.frame (
   live_type              = c("aves", "beehive", "bovine", "camelid", "caprine", "rodentia", "sus", "fish"), 
   crude_growth_rate      = 0
 )
+
+population_manager <- R6::R6Class(
+  "population_manager", 
+  list( 
+    population = function(iso3, year_index, population_data_df = NULL, policy_df = NULL) {
+      #' population 
+      #' 
+      #' @description Calculates number of humans in the specified country
+      #' 
+      #' @param iso3 character ISO Alpha-3 code
+      #' @param year_index numerical year
+      #' @param population_data_df Data frame containing historical population data passed from population class.
+      #' @return numerical Crude growth rate (persons added per 1e5 people per year)
+      if(year_index == 2000) {
+        
+        pop <- population_un %>% 
+          dplyr::filter(iso_alpha3 == iso3 & year == year_index) %>% 
+          dplyr::pull(population_total)
+        
+        if(length(pop) != 0) {
+          return(pop)
+        } else {
+          return(0)
+        }
+        
+      } else {
+        pop <- population_data_df %>% 
+          dplyr::filter(iso_alpha3 == iso3 & year == year_index-1) %>% 
+          dplyr::pull(population)
+        
+        cgr <- policy_df %>% 
+          dplyr::filter(iso_alpha3_code == iso3 & year == year_index) %>% 
+          dplyr::pull(cgr)
+        
+        if(length(pop) != 0 & length(cgr) != 0) {
+          pop <- pop + pop*cgr
+          return(pop)
+        } else {
+          return(0)
+        }
+      } 
+    }, 
+    net_migration = function(iso3, year_index, migration_data_df = NULL, policy_df = NULL) {
+      #' net_migration 
+      #' 
+      #' @description Calculates net number of humans that immigrate to the specified country
+      #' 
+      #' @details Resource constraints in the Model do not change the crude growth rate; but they do change 
+      #' the crude net migration rate (CNMR).
+      #' 
+      #' @param iso3 character ISO Alpha-3 code
+      #' @param year_index numerical year
+      #' @param migration_data_df Data frame containing historical migration data passed from population class.
+      #' @return numerical Net number of human immigrants
+      if(year_index == 2000) {
+        
+        ntmg <- population_un %>% 
+          dplyr::filter(iso_alpha3 == iso3 & year == year_index) %>% 
+          dplyr::pull(net_migrants)
+        
+        if(length(ntmg) != 0) {
+          return(ntmg)
+        } else {
+          return(0)
+        }
+        
+      } else {
+        ntmg <- migration_data_df %>% 
+          dplyr::filter(iso_alpha3 == iso3 & year == year_index-1) %>% 
+          dplyr::pull(net_migrants)
+        
+        cnmr <- policy_df %>% 
+          dplyr::filter(iso_alpha3_code == iso3 & year == year_index) %>% 
+          dplyr::pull(cnmr)
+        
+        if(length(ntmg) != 0 & length(cnmr) != 0) {
+          ntmg <- ntmg + ntmg*cnmr
+          return(ntmg)
+        } else {
+          return(0)
+        }
+      } 
+    }
+))
 
 land_use_manager <- R6::R6Class(
   "land_use_manager", 
