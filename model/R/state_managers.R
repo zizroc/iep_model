@@ -24,15 +24,27 @@ land_use_policy_df <- data.frame (
 crop_policy_df <- data.frame (
   iso_alpha3_code        = "CHN", 
   year                   = 2001, 
-  crop_type              = c("cereal", "pulse", "oilcrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop"), 
+  model_group            = c("cereal", "pulse", "oilcrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop"), 
   delta_harvest_yield    = 0, 
   delta_allocation       = 0
+)
+
+cropland_allocation_policy_df <- data.frame(
+  iso_alpha3_code  = "CHN", 
+  year             = 2001, 
+  model_group      = c("cereal", "pulse", "oilcrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop"), 
+  delta_food_ratio = 0, 
+  delta_feed_ratio = 0, 
+  delta_seed_ratio = 0, 
+  delta_loss_ratio = 0, 
+  delta_proc_ratio = 0, 
+  delta_othe_ratio = 0
 )
 
 livestock_policy_df <- data.frame (
   iso_alpha3_code        = "CHN", 
   year                   = 2001, 
-  live_type              = c("aves", "beehive", "bovine", "camelid", "caprine", "rodentia", "sus", "fish"), 
+  model_group            = c("aves", "beehive", "bovine", "camelid", "caprine", "rodentia", "sus", "fish"), 
   crude_growth_rate      = 0
 )
 
@@ -62,7 +74,7 @@ population_manager <- R6::R6Class(
         
       } else {
         pop <- population_data_df %>% 
-          dplyr::filter(iso_alpha3 == iso3 & year == year_index-1) %>% 
+          dplyr::filter(iso_alpha3_code == iso3 & year == year_index-1) %>% 
           dplyr::pull(population)
         
         cgr <- policy_df %>% 
@@ -103,7 +115,7 @@ population_manager <- R6::R6Class(
         
       } else {
         ntmg <- migration_data_df %>% 
-          dplyr::filter(iso_alpha3 == iso3 & year == year_index-1) %>% 
+          dplyr::filter(iso_alpha3_code == iso3 & year == year_index-1) %>% 
           dplyr::pull(net_migrants)
         
         cnmr <- policy_df %>% 
@@ -241,15 +253,15 @@ crop_manager <- R6::R6Class(
   # inherit = crop, 
   list(
     harvest_area  = function(iso3, year_index, crop_group, land_use_area_df = NULL, policy_df = NULL) {
-      #' harvest_area 
+      #' harvest_area
       #' 
-      #' @description Calculates the area (hectares) harvested under management of specified land use type. Cropland only.
+      #' @description Calculates the ratio of harvested under management of specified land use type. Cropland only.
       #' 
-      #' @details Harvest area initial values are set based on historic FAO data. For years > 2000, cropland area harvested and cropland allotted to each 
-      #' crop type are passed from the land-use module. Not all available cropland is planted/harvested, and harvest_area is the subset of cropland area that 
-      #' was planted with crops minus fallow/rested land;  i.e., cropland = sum(harvest_area for all crop groups) + fallow_area. Each crop_group is harvested 
-      #' from its own harvest_area once per year. Multiple and mixed cropping strategies are not explicitly seen by the Model, but accounted for by lesser or 
-      #' greater harvest_yield values.
+      #' @details Harvest area initial values are set based on historic FAO data. For years > 2000, "cropland area" is passed from the land_use_manager and 
+      #' "cropland allotted" is passed from the crop_manager for each crop type. Not all available cropland is planted/harvested, and harvest_area is the subset 
+      #' of cropland area that was planted with crops minus fallow/rested land;  i.e., cropland = sum(harvest_area for all crop groups) + fallow_area. Each 
+      #' crop_group is harvested from its own harvest_area once per year. Multiple and mixed cropping strategies are not explicitly seen by the Model, but 
+      #' accounted for by lesser or greater harvest_yield values.
       #' 
       #' NB: This function requires that the base_data.R module is run first, to fill the crops_area_harvested data frame for year 2000.
       #' 
@@ -261,35 +273,26 @@ crop_manager <- R6::R6Class(
       #' @return hectares harvested for given parameters
       
       if(year_index == 2000) { 
-        area_used <- landuse_area %>% 
+        harv_area <- landuse_area %>% 
           dplyr::filter(iso_alpha3 == iso3 & year == 2000 & land_use_type == "cropland") %>% 
           dplyr::pull(area_ha)
         
+        if(length(harv_area) != 0) {
+          return(harv_area)
+        } else {
+          return(0)
+        }
+        
       } else {
-        area_used <- land_use_area_df %>% 
+        harv_area <- land_use_area_df %>% 
           dplyr::filter(iso_alpha3_code == iso3 & year == year_index-1 & land_use_type == "cropland") %>% 
           dplyr::pull(land_use_area)
         
-        if(length(area_used) == 0) {
-          area_used <- 0
+        if(length(harv_area) != 0) {
+          return(harv_area)
+        } else {
+          return(0)
         }
-        
-        ratio_allotted <- crops_area_allotted %>% 
-          dplyr::filter(iso_alpha3 == iso3 & year == year_index-1 & crop_type == crop_group) %>% 
-          dplyr::pull(relative_area_allotted)
-        
-        if(length(ratio_allotted) == 0) {
-          ratio_allotted <- 0
-        } 
-        
-        #change in crop land allotment due to policy
-        delta_ratio_allotted <- policy_df %>% 
-          dplyr::filter(iso_alpha3_code == iso3 & year == year_index & crop_type == crop_group) %>% 
-          dplyr::pull(delta_allocation)
-        
-        ratio_allotted <- ratio_allotted + ratio_allotted*delta_ratio_allotted
-        
-        return(area_used*ratio_allotted)
       }
     }, 
     harvest_yield = function(iso3, year_index, crop_group, crop_data_df = NULL, policy_df = NULL) { 
@@ -323,11 +326,11 @@ crop_manager <- R6::R6Class(
         
       } else {
         yield       <- crop_data_df %>% 
-          dplyr::filter(iso_alpha3_code == iso3 & year == year_index-1 & crop_type == crop_group) %>% 
+          dplyr::filter(iso_alpha3_code == iso3 & year == year_index-1 & model_group == crop_group) %>% 
           dplyr::pull(harvest_yield)
         
         delta_yield <- policy_df %>% 
-          dplyr::filter(iso_alpha3_code == iso3 & year == year_index & crop_type == crop_group) %>% 
+          dplyr::filter(iso_alpha3_code == iso3 & year == year_index & model_group == crop_group) %>% 
           dplyr::pull(delta_harvest_yield)
         
         if(length(yield) != 0) {
@@ -337,47 +340,67 @@ crop_manager <- R6::R6Class(
         }
       }
     }, 
-    crop_production = function(harvest_area, harvest_yield) {
+    crop_production = function(harvest_area, ratio_of_land_allotted, harvest_yield) {
       #' crop_production 
       #' 
       #' @description Calculates crop production (tonnes) as the product of harvest yield and harvest area
       #' 
       #' @details Crop production is the product of harvest_area and harvest_yield, which are passed from other functions in this class. 
       #' If either term is non-numerical, crop production will return zero without throwing an error. Users should investigate results to 
-      #' confirm that production was computed properly.
+      #' confirm that production was computed properly. Crop_production is computed as the product of harvest_area, cropland_allotment, and 
+      #' harvest_yield for each crop type.
       #' 
       #' @param harvest_area numerical Harvest area output of harvest_area (ha)
       #' @param harvest_yield numerical Harvest yield output of harvest_yield (t/ha)
       #' @return tonnes of crop
-      if(length(harvest_area) != 0 & length(harvest_yield) != 0) {
-        return(harvest_area*harvest_yield)
+      if(length(harvest_area) != 0 & length(ratio_of_land_allotted) != 0 & length(harvest_yield) != 0) {
+        return(harvest_area*ratio_of_land_allotted*harvest_yield)
       } else {
         return(0)
       }
     }, 
-    #' cropland_allotment = function(iso3, year_index, crop_group, crop_policy_df = NULL) {
-    #'   #' cropland_allotment
-    #'   #'
-    #'   #' @description Manages the proportion of cropland used for crop production.
-    #'   #'
-    #'   #' @details Not all cropland is put into production. Once fallow land area is subtracted from available cropland, crop production values
-    #'   #' are determined by their proportion to the whole, by a ratio_of_land_allotted value, passed from the crop_policy_df. This function is 
-    #'   #' deprecated. Its functionality is rolled into harvest_area.
-    #'   #'
-    #'   #' @param iso3 character ISO Alpha-3 code
-    #'   #' @param year_index numerical year
-    #'   #' @param crop_group character string crop type
-    #'   #' @param crop_policy_df Data frame containing values for the ratio of available cropland allotted for the production of each crop type.
-    #'   #' @return proportion between 0 and 1
-    #'   cropland_allotted <- crop_policy_df %>%
-    #'     dplyr::filter(iso_alpha3_code == iso3 & year == year_index & model_group == crop_group) %>%
-    #'     dplyr::pull(ratio_of_land_allotted)
-    #'   if(length(cropland_allotted) != 0) {
-    #'     return(cropland_allotted)
-    #'   } else {
-    #'     return(0)
-    #'   }
-    #' },
+    crop_allotment = function(iso3, year_index, crop_group, crop_data_df = NULL, policy_df = NULL) {
+      #' cropland_allotment
+      #'
+      #' @description Manages the proportion of cropland used for crop production.
+      #'
+      #' @details Not all cropland is put into production. Once fallow land area is subtracted from available cropland, crop production values
+      #' are determined by their proportion to the whole, by a ratio_of_land_allotted value, passed from the policy_df.
+      #'
+      #' @param iso3 character ISO Alpha-3 code
+      #' @param year_index numerical year
+      #' @param crop_group character string crop type
+      #' @param crop_data_df Data frame containing historical crop values
+      #' @param policy_df Data frame containing values for the ratio of available cropland allotted for the production of each crop type.
+      #' @return proportion between 0 and 1
+      if(year_index == 2000) {
+        ratio_allotted <- crops_area_allotted %>% 
+          dplyr::filter(iso_alpha3 == iso3 & year == year_index & crop_type == crop_group) %>% 
+          dplyr::pull(relative_area_allotted)
+        
+        if(length(ratio_allotted) != 0) { 
+          return(ratio_allotted)
+        } else {
+          return(0)
+        }
+        
+      } else {
+        ratio_allotted <- crop_data_df %>% 
+          dplyr::filter(iso_alpha3_code == iso3 & year == year_index & model_group == crop_group) %>% 
+          dplyr::pull(ratio_of_land_allotted)
+        
+        delta_ratio_allotted <- policy_df %>% 
+          dplyr::filter(iso_alpha3_code == iso3 & year == year_index & model_group == crop_group) %>% 
+          dplyr::pull(delta_allocation)
+        
+        if(length(ratio_allotted) != 0 & length(delta_ratio_allotted) != 0) {
+          ratio_allotted <- ratio_allotted + ratio_allotted*delta_ratio_allotted
+        } else {
+          ratio_allotted <- 0
+        }
+       return(ratio_allotted)
+      }
+    },
     crop_allocation = function(iso3, year_index, crop_group, crop_use, crop_data_df = NULL, policy_df = NULL) {
       #' crop_allocation 
       #' 
@@ -429,7 +452,7 @@ crop_manager <- R6::R6Class(
         
         delta_rel_dom_prod <- policy_df %>% 
           dplyr::filter(iso_alpha3_code == iso3 & year == year_index & model_group == crop_group) %>% 
-          dplyr::pull(paste0("delta_", crop_allocation, "_ratio")) %>% 
+          dplyr::pull(paste0("delta_", crop_use, "_ratio")) %>% 
           as.numeric()
         
         rel_dom_prod  <- rel_dom_prod + delta_rel_dom_prod
@@ -558,8 +581,8 @@ livestock_manager <- R6::R6Class(
           dplyr::pull("total_stock_quantity")
         
         cgr   <- policy_df %>% 
-          dplyr::filter(iso_alpha3_code  == iso3 & year == year_index & live_type == live_group) %>% 
-          dplyr::pull("stock_growth_rate")
+          dplyr::filter(iso_alpha3_code  == iso3 & year == year_index & model_group == live_group) %>% 
+          dplyr::pull("crude_growth_rate")
         
         if(length(quant) != 0 & length(cgr) != 0) {
           return(quant + quant*cgr)
@@ -583,7 +606,7 @@ livestock_manager <- R6::R6Class(
     #'   } else {
     #'     x <- df %>% 
     #'       dplyr::filter(fao_countrycode == x1 & year == x2-1 & model_group == x3) %>% 
-    #'       dplyr::pull(stock_growth_rate)
+    #'       dplyr::pull(crude_growth_rate)
     #'     
     #'     y <- livestock_growth_policy_df %>% 
     #'       dplyr::filter(livestock_group == x3) %>% 
@@ -744,6 +767,58 @@ water_footprint_manager <- R6::R6Class(
         x <- mean_waterfootprint_crops %>% 
           dplyr::filter(iso_code == iso3 & crop_type == crop_group & wf_type == wf) %>% 
           dplyr::pull(wf_mean)
+      if(length(x) != 0) {
+        return(x)
+      } else {
+        return(0)
+      }
+    }, 
+    get_livestock_wf = function(iso3, livestock_group, use_group, wf) {
+      #' get_livestock_wf 
+      #' 
+      #' @description Water footprint (cubic meters per animal product tonne) of farm animals and animal products (1996-2005) from Mekonnen & Hoekstra (2012).
+      #' @details
+      #' Blue Water Footprint: The amount of surface water and groundwater required (evaporated or used directly) to produce an item.
+      #' Green Water Footprint: The amount of rainwater required (evaporated or used directly) to make an item. 
+      #' Grey Water Footprint: The amount of freshwater required to dilute the wastewater generated in manufacturing, in order to maintain water quality , as determined by state and local standards. 
+      #' 
+      #' @param iso3 character Country level ISO Alpha 3 code, e.g., iso3 = "CAN"
+      #' @param livestock_group character Livestock group, e.g., livestock_group = c("aves", "beehive", "bovine", "camelid", "caprine", "rodentia", "sus", "fish")
+      #' @param use_group character Animal product usage group, e.g., use_group = c("dairy", "meat", "other"). NB: eggs are coded as aves_dairy.
+      #' @param wf character Water footprint type, e.g., wf = c("green", "blue", "grey")
+      #' 
+      #' @return numerical water footprint (cubic meters per animal product tonne)
+      #' @references Mekonnen, M.M. & Hoekstra, A.Y. (2012) A global assessment of the water footprint of farm animal products, Ecosystems, 15(3): 401–415.
+      
+      x <- mean_waterfootprint_livestock %>% 
+        dplyr::filter(iso_code == iso3 & model_group == paste0(livestock_group, "_", use_group) & wf_type == wf) %>% 
+        dplyr::pull(wf_mean)
+      if(length(x) != 0) {
+        return(x)
+      } else {
+        return(0)
+      }
+    }
+  )
+)
+
+diet_manager <- R6::R6Class(
+  "diet_manager", 
+  list(
+    get_crop_kcal = function(iso3, crop_group, crop_data_df = NULL) { 
+      #' get_crop_kcal 
+      #' 
+      #' @description Metabolic energy (kcal) of crops and derived crop products.
+      #' @details Function converts crop groups to average kcal values.
+      #' 
+      #' @param iso3 character Country-level ISO Alpha 3 code, e.g., iso3 = "CAN"
+      #' @param crop_group character Type of crop, e.g., crop_group = c("cereal", "pulse", "rootstubers", "fibercrop", "citrus", "fruit", "vegetable", "oilcrop", "treenut", "sugarcrop")
+      #' @param crop_data_df Crop data container passed from crop class.
+      #' 
+      #' @return numerical Total metabolic energy of crops produced (kcal)
+      x <- mean_waterfootprint_crops %>% 
+        dplyr::filter(iso_code == iso3 & crop_type == crop_group & wf_type == wf) %>% 
+        dplyr::pull(wf_mean)
       if(length(x) != 0) {
         return(x)
       } else {
