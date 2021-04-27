@@ -2,14 +2,15 @@
 
 
 
-time_frame     <- c(2000:2001)
+time_frame     <- c(2000:2008)
 land_use_types <- c("cropland", "fallow_cropland", "pasture", "forest", "otherland")
 crop_types     <- c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
 live_types     <- c(  "aves", "bovine", "camelid",   "caprine",      "equine",  "rodentia",   "sus",   "fish")
 live_use_group <- c( "dairy",   "meat",   "other")
 model_groups   <- c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop", "aves_dairy", "bovine_dairy", "camelid_dairy", "caprine_dairy", "aves_meat", "bovine_meat", "camelid_meat", "caprine_meat", "equine_meat", "rodentia_meat", "sus_meat", "fish_meat", "aves_other", "bovine_other", "camelid_other", "caprine_other", "equine_other", "rodentia_other", "sus_other", "fish_other")
+fuel_types     <- c("biofuel", "biomass", "coal", "ethanol", "gas", "geothermal", "hydro", "nuclear", "solar", "wind")
 # iso_codes      <- c("ARG", "CAN", "CHN", "MEX")
-iso_codes      <- c("CHN")
+iso_codes      <- c("ARG", "CHN")
  
 #this class is under construction
 simulator = R6::R6Class(
@@ -43,6 +44,7 @@ simulator = R6::R6Class(
         trd_crp <- trade_crop_manager$new()
         liv_mng <- livestock_manager$new()
         wf_mng  <- water_footprint_manager$new()
+        frst_mng<- forest_manager$new()
       }
     }, 
     population_module = function(iso3, year, population_policy_df) {
@@ -75,7 +77,12 @@ simulator = R6::R6Class(
       crp$set_iso_alpha3(iso_code)
       for(crop_type in crop_types){
         crp$set_model_group(crop_type)
-        crp$set_harvest_area(crp_mng$harvest_area(crp$iso_alpha3, crp$year, crp$model_group, land_use_area_df = lu$get_land_use_data(), policy_df = crop_policy_df))
+        
+        crp$set_adjusted_cropland_area(crp_mng$adjusted_cropland_area(crp$iso_alpha3, crp$year, crp$model_group, land_use_area_df = lu$get_land_use_data(), policy_df = crop_policy_df))
+        crp$set_cropland_allotment(crp_mng$cropland_allotment(crp_mng$adjusted_cropland_area(crp$iso_alpha3, crp$year, crp$model_group, crop_data_df = crp$get_crop_data(), policy_df = crop_policy_df)))
+        crp$set_harvest_area(crp_mng$harvest_area(crp$adjusted_cropland_area, crp$ratio_of_land_allotted))
+                                   
+        # crp$set_harvest_area(crp_mng$harvest_area(crp$iso_alpha3, crp$year, crp$model_group, land_use_area_df = lu$get_land_use_data(), policy_df = crop_policy_df))
         crp$set_harvest_yield(crp_mng$harvest_yield(crp$iso_alpha3, crp$year, crp$model_group, crop_data_df = crp$get_crop_data(), policy_df = crop_policy_df))
         crp$set_production(crp_mng$crop_production(crp$harvest_area, crp$harvest_yield))
         crp$set_food_stock(crp$production*crp_mng$crop_allocation(crp$iso_alpha3, crp$year, crp$model_group, "food"))
@@ -173,6 +180,7 @@ for(year_index in time_frame) {
       crp     <- crop$new()
       liv     <- livestock$new()
       wf      <- water_footprint$new() 
+      ener    <- energy$new()
       
       pop_mng <- population_manager$new()
       lu_mng  <- land_use_manager$new()
@@ -180,6 +188,8 @@ for(year_index in time_frame) {
       trd_crp <- trade_crop_manager$new()
       liv_mng <- livestock_manager$new()
       wf_mng  <- water_footprint_manager$new()
+      frst_mng<- forest_manager$new()
+      ener_mng<- energy_manager$new()
     }
     
     #population module 1
@@ -210,10 +220,14 @@ for(year_index in time_frame) {
     crp$set_iso_alpha3(iso_code)
     for(crop_type in crop_types){
       crp$set_model_group(crop_type)
-      crp$set_harvest_area(crp_mng$harvest_area(crp$iso_alpha3, crp$year, crp$model_group, land_use_area_df = lu$get_land_use_data(), policy_df = crop_policy_df))
-      crp$set_land_allotted(crp_mng$crop_allotment(crp$iso_alpha3, crp$year, crp$model_group, crop_data_df = crp$get_crop_data(), policy_df = crop_policy_df))
+      
+      crp$set_adjusted_cropland_area(crp_mng$adjusted_cropland_area(crp$iso_alpha3, crp$year, crp$model_group, land_use_area_df = lu$get_land_use_data(), policy_df = crop_policy_df))
+      crp$set_land_allotted(crp_mng$cropland_allotment(crp$iso_alpha3, crp$year, crp$model_group, crop_data_df = crp$get_crop_data(), policy_df = crop_policy_df))
+      crp$set_harvest_area(crp_mng$harvest_area(crp$adjusted_cropland_area, crp$ratio_of_land_allotted))
+      
+      # crp$set_land_allotted(crp_mng$crop_allotment(crp$iso_alpha3, crp$year, crp$model_group, crop_data_df = crp$get_crop_data(), policy_df = crop_policy_df))
       crp$set_harvest_yield(crp_mng$harvest_yield(crp$iso_alpha3, crp$year, crp$model_group, crop_data_df = crp$get_crop_data(), policy_df = crop_policy_df))
-      crp$set_production(crp_mng$crop_production(crp$harvest_area, crp$ratio_of_land_allotted, crp$harvest_yield))
+      crp$set_production(crp_mng$crop_production(crp$harvest_area, crp$harvest_yield))
       crp$set_food_stock(crp$production*crp_mng$crop_allocation(crp$iso_alpha3, crp$year, crp$model_group, "food", crop_data_df = crp$get_crop_data(), policy_df = cropland_allocation_policy_df))
       crp$set_feed_stock(crp$production*crp_mng$crop_allocation(crp$iso_alpha3, crp$year, crp$model_group, "feed", crop_data_df = crp$get_crop_data(), policy_df = cropland_allocation_policy_df))
       crp$set_seed_stock(crp$production*crp_mng$crop_allocation(crp$iso_alpha3, crp$year, crp$model_group, "seed", crop_data_df = crp$get_crop_data(), policy_df = cropland_allocation_policy_df))
@@ -247,7 +261,7 @@ for(year_index in time_frame) {
       wf$set_model_group(crop_type)
       
       #find crop production
-      crop_prod <- crp$get_crop_data() %>% 
+      crop_prod <- crp$crop_data %>% 
         dplyr::filter(iso_alpha3_code == wf$iso_alpha3 & year == wf$year & model_group == wf$model_group) %>% 
         dplyr::pull(production)
       
@@ -256,6 +270,42 @@ for(year_index in time_frame) {
       wf$set_grey_wf(wf_mng$get_crop_wf(wf$iso_alpha3, wf$model_group, "grey")*crop_prod)
       wf$set_wf_data()
     }
+    
+    #energy: energy module 1
+    ener$set_year(year_index)
+    ener$set_iso_alpha3(iso_code)
+    for(fuel_type in fuel_types) {
+      ener$set_fuel_group(fuel_type)
+      if(fuel_type %in% c("ethanol", "biofuel")) {
+        fuel_sum = 0
+        for(crop_type in crop_types) {
+          fuel <- ener_mng$get_biofuel_feedstock(ener$iso_alpha3, ener$year, crop_type, crop_data_df = crp$crop_data)*ener_mng$get_biofuel_from_crops(crop_type, fuel_type)
+          fuel_sum   <- fuel_sum + fuel
+        }
+        ener$set_quantity(fuel_sum)
+        ener$set_kWh(0.277778*ener_mng$get_specific_energy(fuel_type)*ener$quantity)
+        ener$set_t_CO2(ener_mng$get_emission_intensity(fuel_type)*ener$quantity)
+      } else if(fuel_type == "biomass") {
+        fuelwood <-  frst_mng$forest_harvest_area(ener$iso_alpha3, ener$year, lu$land_use_data)*frst_mng$harvest_wood()
+        ener$set_quantity(frst_mng$get_charcoal(fuelwood, production_method = "industrial"))
+        ener$set_kWh(0.277778*ener_mng$get_specific_energy(fuel_type)*ener$quantity)
+        ener$set_t_CO2(ener_mng$get_emission_intensity(fuel_type)*ener$quantity)
+      } else if(fuel_type %in% c("coal", "gas", "oil", "peat")) {
+        ener$set_quantity(ener_mng$extract_fossil_fuels(ener$iso_alpha3, fuel_type))
+        ener$set_kWh(0.277778*ener_mng$get_specific_energy(fuel_type)*ener$quantity)
+        ener$set_t_CO2(ener_mng$get_emission_intensity(fuel_type)*ener$quantity)
+      } else if(fuel_type %in% c("geothermal", "hydro", "solar", "wind")) {
+        ener$set_quantity(NA)
+        ener$set_kWh(0.277778*ener_mng$produce_renewables(ener$iso_alpha3, fuel_type))
+        ener$set_t_CO2(0)
+      } else {
+        ener$set_quantity(NA)
+        ener$set_kWh(0.277778*ener_mng$produce_nuclear(ener$iso_alpha3, fuel_type))
+        ener$set_t_CO2(0)
+      }
+      ener$set_energy_data()
+    }
+    
     
     #' TODO animal products water footprint module
     
@@ -308,6 +358,17 @@ for(year_index in time_frame) {
     # pop$set_migration_data()
     
     #reporting module
+    if(iso_code == max(iso_codes) & year_index == max(time_frame)) {
+      readr::write_csv(pop$population_data, file = paste0(output_path, "population_data", ".csv"))
+      readr::write_csv(lu$land_use_data, file = paste0(output_path, "land_use_data", ".csv"))
+      readr::write_csv(crp$crop_data, file = paste0(output_path, "crop_data", ".csv"))
+      readr::write_csv(crp$trade_crop_data, file = paste0(output_path, "trade_crop_data", ".csv"))
+      readr::write_csv(liv$livestock_data, file = paste0(output_path, "livestock_data", ".csv"))
+      readr::write_csv(wf$wf_data, file = paste0(output_path, "wf_data", ".csv"))
+      readr::write_csv(wf$traded_wf_data, file = paste0(output_path, "traded_wf_data", ".csv"))
+      readr::write_csv(ener$energy_data, file = paste0(output_path, "energy_data", ".csv"))
+    }
+    
     #' TODO figure out why this is double-reporting the last country
     # if(iso_code == max(iso_codes) & i == length(time_frame)) {
     #   print(lu$get_land_use_data())
