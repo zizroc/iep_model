@@ -285,8 +285,9 @@ crop <- R6::R6Class(
   "crop", 
   inherit = country, 
   list(
-    model_group              = NA, 
+    model_group            = NA, 
     ratio_of_land_allotted = NA, 
+    adjusted_cropland_area = NA, 
     harvest_area           = NA, 
     harvest_yield          = NA, 
     production             = NA, #NB: production is domestic (it does not include imports or exports)
@@ -323,16 +324,21 @@ crop <- R6::R6Class(
       #' 
       #' @description Sets the value of land area allotted (hectares) to crop at country-level.
       #' 
-      #' @param character model group, i.e., model_group = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
       #' 
       self$ratio_of_land_allotted <- value
+    }, 
+    set_adjusted_cropland_area = function(value) { 
+      #' set_adjusted_cropland_area 
+      #' 
+      #' @description Sets the value of cropland minus fallow land area (hectares) at country-level.
+      #' 
+      self$adjusted_cropland_area <- value
     }, 
     set_harvest_area = function(value) { 
       #' set_harvest_area 
       #' 
       #' @description Sets the value of land area harvested (hectares) for crop at country-level.
       #' 
-      #' @param character model group, i.e., model_group = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
       #' 
       self$harvest_area <- value
     }, 
@@ -341,16 +347,12 @@ crop <- R6::R6Class(
       #' 
       #' @description Sets the value of harvested crop yield (tonnes per hectare) at country-level.
       #' 
-      #' @param character model group, i.e., model_group = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
-      #' 
       self$harvest_yield <- value
     }, 
     set_production = function(value) { 
       #' set_harvest_yield 
       #' 
       #' @description Sets the value of crop production (tonnes) at country-level.
-      #' 
-      #' @param character model group, i.e., model_group = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
       #' 
       self$production <- value
     }, 
@@ -359,16 +361,12 @@ crop <- R6::R6Class(
       #' 
       #' @description Sets the value of food intended for human consumption production (tonnes) at country-level.
       #' 
-      #' @param character model group, i.e., model_group = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
-      #' 
       self$food_stock <- value
     }, 
     set_feed_stock = function(value) { 
       #' set_feed_stock 
       #' 
       #' @description Sets the value of feed intended for animal consumption production (tonnes) at country-level.
-      #' 
-      #' @param character model group, i.e., model_group = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
       #' 
       self$feed_stock <- value
     }, 
@@ -377,25 +375,19 @@ crop <- R6::R6Class(
       #' 
       #' @description Sets the value of seed intended for crop reproduction (tonnes) at country-level.
       #' 
-      #' @param character model group, i.e., model_group = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
-      #' 
       self$seed_stock <- value
     }, 
     set_loss_stock = function(value) { 
       #' set_loss_stock 
       #' 
       #' @description Sets the value of crop lost or wasted (tonnes) at country-level.
-      #' 
-      #' @param character model group, i.e., model_group = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
-      #' 
+      #'
       self$loss_stock <- value
     }, 
     set_proc_stock = function(value) { 
       #' set_proc_stock 
       #' 
       #' @description Sets the value of crop allotted for non-food processing (tonnes) purposes at country-level.
-      #' 
-      #' @param character model group, i.e., model_group = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
       #' 
       self$proc_stock <- value
     }, 
@@ -404,16 +396,12 @@ crop <- R6::R6Class(
       #' 
       #' @description Sets the value of crop allotted for non-food other use (tonnes) purposes at country-level.
       #' 
-      #' @param character model group, i.e., model_group = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
-      #' 
       self$othe_stock <- value
     }, 
     set_food_imports = function(value) { 
       #' set_food_imports 
       #' 
       #' @description Sets the value of food crops imported (tonnes) at country-level.
-      #' 
-      #' @param character model group, i.e., model_group = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
       #' 
       self$food_imports <- value
     }, 
@@ -422,16 +410,12 @@ crop <- R6::R6Class(
       #' 
       #' @description Sets the value of food crops exported (tonnes) at country-level.
       #' 
-      #' @param character model group, i.e., model_group = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
-      #' 
       self$food_exports <- value
     }, 
     set_feed_imports = function(value) { 
       #' set_feed_imports 
       #' 
       #' @description Sets the value of feed crops imported (tonnes) at country-level.
-      #' 
-      #' @param character model group, i.e., model_group = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
       #' 
       self$feed_imports <- value
     }, 
@@ -440,8 +424,6 @@ crop <- R6::R6Class(
       #' 
       #' @description Sets the value of feed crops exported (tonnes) at country-level.
       #' 
-      #' @param character model group, i.e., model_group = c("cereal",  "pulse", "oilcrop", "fibercrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
-      #' 
       self$feed_exports <- value
     }, 
     set_crop_data = function() { 
@@ -449,12 +431,12 @@ crop <- R6::R6Class(
       #' 
       #' @description Appends data frame containing crop data with latest variable values at country-level.
       #' 
-      #' 
-      x = tibble(
+      crop_dat = tibble(
         iso_alpha3_code        = self$iso_alpha3, 
         fao_countrycode        = self$fao_countrycode, 
         year                   = self$year,
-        model_group              = self$model_group, 
+        model_group            = self$model_group, 
+        adjusted_cropland_area = self$adjusted_cropland_area, 
         ratio_of_land_allotted = self$ratio_of_land_allotted, 
         harvest_area           = self$harvest_area, 
         harvest_yield          = self$harvest_yield, 
@@ -466,7 +448,7 @@ crop <- R6::R6Class(
         proc_stock             = self$proc_stock,
         othe_stock             = self$othe_stock 
       )
-      self$crop_data = rbind(self$crop_data, x)
+      self$crop_data = rbind(self$crop_data, crop_dat)
     }, 
     get_crop_data = function(value) { 
       #' get_crop_data 
@@ -481,17 +463,17 @@ crop <- R6::R6Class(
       #' 
       #' @description Appends data frame containing crop trade data with latest variable values at country-level.
       #' 
-      x = tibble(
+      crop_dat = tibble(
         iso_alpha3_code  = self$iso_alpha3, 
         fao_countrycode  = self$fao_countrycode, 
         year             = self$year,
-        model_group        = self$model_group, 
+        model_group      = self$model_group, 
         food_imports     = self$food_imports, 
         feed_imports     = self$feed_imports, 
         food_exports     = self$food_exports, 
         feed_exports     = self$feed_exports
       )
-      self$trade_crop_data = rbind(self$trade_crop_data, x)
+      self$trade_crop_data = rbind(self$trade_crop_data, crop_dat)
     }, 
     get_trade_crop_data = function() { 
       #' set_trade_crop_data 
@@ -654,7 +636,28 @@ water_footprint <- R6::R6Class(
   )
 )
 
-
+forest <- R6::R6Class(
+  "forest", 
+  inherit = country, 
+  list(
+    harvest_area = NA, 
+    forest_data = data.frame(), 
+    set_harvest_area = function(value) {
+      self$harvest_area <- value
+      invisible(self)
+    }, 
+    set_forest_data = function() {
+      df <- data.frame(
+        harvest_area = self$harvest_area
+      ) 
+      self$forest_data <- self$forest_data %>% 
+        dplyr::bind_rows(df)
+    }, 
+    get_forest_data = function() {
+      return(as_tibble(self$forest_data))
+    }
+  )
+)
 
 
 diet <- R6::R6Class(
@@ -705,6 +708,65 @@ diet <- R6::R6Class(
     }, 
     get_diet_data = function() {
       return(as_tibble(self$diet_data))
+      invisible(self)
+    }
+  )
+)
+
+energy <- R6::R6Class(
+  "energy", 
+  inherit = country, 
+  list(
+    fuel_group  = NA, 
+    quantity    = NA, 
+    kWh         = NA, 
+    t_CO2       = NA, 
+    # t_CH4       = NA, 
+    energy_data = tibble(.rows = 50), 
+    set_fuel_group = function(value) {
+      #' set_fuel_group
+      #' 
+      #' @description Sets the fuel type, e.g., fuel_group = c("biofuel", "biomass", "coal", 
+      #' "ethanol", "gas", "geothermal", "hydro", "nuclear", "solar", "wind")
+      #' 
+      self$fuel_group <- value
+      invisible(self)
+    }, 
+    set_quantity = function(value) {
+      #' set_quantity
+      #' 
+      #' @description Sets the quantity (tonnes)
+      #' 
+      self$quantity <- value
+      invisible(self)
+    }, 
+    set_kWh = function(value) {
+      self$kWh <- value
+      invisible(self)
+    }, 
+    set_t_CO2 = function(value) {
+      self$t_CO2 <- value
+      invisible(self)
+    }, 
+    # set_t_CH4 = function(value) {
+    #   self$t_CH4 <- value
+    #   invisible(self)
+    # }, 
+    set_energy_data = function() {
+      df <- tibble(
+        iso_alpha3_code = self$iso_alpha3, 
+        fao_countrycode = self$fao_countrycode, 
+        year            = self$year,
+        fuel_group      = self$fuel_group, 
+        quantity        = self$quantity, 
+        kWh             = self$kWh, 
+        t_CO2           = self$t_CO2 
+        )
+      self$energy_data = rbind(self$energy_data, df)
+      invisible(self)
+    }, 
+    get_energy_data = function() {
+      return(as_tibble(self$energy_data))
       invisible(self)
     }
   )
