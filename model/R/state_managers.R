@@ -2,51 +2,7 @@
 library(roxygen2)
 library(docstring)
 
-population_policy_df <- data.frame (
-  iso_alpha3_code = "CHN", 
-  year            = 2001, 
-  cgr             = 0.01
-)
-
-migration_policy_df <- data.frame (
-  iso_alpha3_code = "CHN", 
-  year            = 2001, 
-  net_migration   = 0.01
-)
-
-land_use_policy_df <- data.frame (
-  iso_alpha3_code        = "CHN", 
-  year                   = 2001, 
-  land_use_type          = c("cropland", "fallow_cropland", "pasture", "forest", "otherland"), 
-  delta_land_use_area    = 0
-)
-
-crop_policy_df <- data.frame (
-  iso_alpha3_code        = "CHN", 
-  year                   = 2001, 
-  model_group            = c("cereal", "pulse", "oilcrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop"), 
-  delta_harvest_yield    = 0, 
-  delta_allocation       = 0
-)
-
-cropland_allocation_policy_df <- data.frame(
-  iso_alpha3_code  = "CHN", 
-  year             = 2001, 
-  model_group      = c("cereal", "pulse", "oilcrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop"), 
-  delta_food_ratio = 0, 
-  delta_feed_ratio = 0, 
-  delta_seed_ratio = 0, 
-  delta_loss_ratio = 0, 
-  delta_proc_ratio = 0, 
-  delta_othe_ratio = 0
-)
-
-livestock_policy_df <- data.frame (
-  iso_alpha3_code        = "CHN", 
-  year                   = 2001, 
-  model_group            = c("aves", "beehive", "bovine", "camelid", "caprine", "rodentia", "sus", "fish"), 
-  crude_growth_rate      = 0
-)
+source(paste0(model_path, "/model/R/data/policy_data.R"))
 
 population_manager <- R6::R6Class(
   "population_manager", 
@@ -252,16 +208,15 @@ crop_manager <- R6::R6Class(
   "crop_manager", 
   # inherit = crop, 
   list(
-    harvest_area  = function(iso3, year_index, crop_group, land_use_area_df = NULL, policy_df = NULL) {
-      #' harvest_area
+    adjusted_cropland_area  = function(iso3, year_index, crop_group, land_use_area_df = NULL, policy_df = NULL) {
+      #' adjusted_cropland_area
       #' 
-      #' @description Calculates the ratio of harvested under management of specified land use type. Cropland only.
-      #' 
+      #' @description Merely passes cropland area from land_area/land_area_manager classes to this class.
+      #'       #' 
       #' @details Harvest area initial values are set based on historic FAO data. For years > 2000, "cropland area" is passed from the land_use_manager and 
-      #' "cropland allotted" is passed from the crop_manager for each crop type. Not all available cropland is planted/harvested, and harvest_area is the subset 
-      #' of cropland area that was planted with crops minus fallow/rested land;  i.e., cropland = sum(harvest_area for all crop groups) + fallow_area. Each 
-      #' crop_group is harvested from its own harvest_area once per year. Multiple and mixed cropping strategies are not explicitly seen by the Model, but 
-      #' accounted for by lesser or greater harvest_yield values.
+      #' "cropland allotted" is passed from the crop_manager for each crop type. Not all available cropland is planted/harvested, and adjusted_cropland_area 
+      #' is the subset of cropland area that was planted with crops minus fallow/rested land;  i.e., adjusted_cropland_area is the difference between cropland 
+      #' and fallow_area (alternatively, cropland is the sum of adjusted_cropland_area and fallow_area).
       #' 
       #' NB: This function requires that the base_data.R module is run first, to fill the crops_area_harvested data frame for year 2000.
       #' 
@@ -294,6 +249,69 @@ crop_manager <- R6::R6Class(
           return(0)
         }
       }
+    }, 
+    cropland_allotment = function(iso3, year_index, crop_group, crop_data_df = NULL, policy_df = NULL) {
+      #' cropland_allotment
+      #'
+      #' @description Manages the proportion of cropland used for crop production.
+      #'
+      #' @details Not all cropland is put into production. Once fallow land area is subtracted from available cropland, crop production values
+      #' are determined by their proportion to the whole, by a ratio_of_land_allotted value, passed from the policy_df.
+      #'
+      #' @param iso3 character ISO Alpha-3 code
+      #' @param year_index numerical year
+      #' @param crop_group character string crop type
+      #' @param crop_data_df Data frame containing historical crop values
+      #' @param policy_df Data frame containing values for the ratio of available cropland allotted for the production of each crop type.
+      #' @return proportion between 0 and 1
+      if(year_index == 2000) {
+        ratio_allotted <- crops_area_allotted %>% 
+          dplyr::filter(iso_alpha3 == iso3 & year == year_index & crop_type == crop_group) %>% 
+          dplyr::pull(relative_area_allotted)
+        
+        if(length(ratio_allotted) != 0) { 
+          return(ratio_allotted)
+        } else {
+          return(0)
+        }
+        
+      } else {
+        ratio_allotted <- crop_data_df %>% 
+          dplyr::filter(iso_alpha3_code == iso3 & year == year_index & model_group == crop_group) %>% 
+          dplyr::pull(ratio_of_land_allotted)
+        
+        delta_ratio_allotted <- policy_df %>% 
+          dplyr::filter(iso_alpha3_code == iso3 & year == year_index & model_group == crop_group) %>% 
+          dplyr::pull(delta_allocation)
+        
+        if(length(ratio_allotted) != 0 & length(delta_ratio_allotted) != 0) {
+          ratio_allotted <- ratio_allotted + ratio_allotted*delta_ratio_allotted
+        } else {
+          ratio_allotted <- 0
+        }
+        return(ratio_allotted)
+      }
+    }, 
+    harvest_area  = function(adjusted_cropland_area, crop_allotment) {
+      #' harvest_area
+      #' 
+      #' @description Product of adjusted_cropland_area and crop_allotment
+      #' 
+      #' @details Multiplies adjusted_cropland_area by crop_allotment to determine the area for each crop type to be harvested. The sum of harvest_area values 
+      #' for all crop types gives the adjusted_cropland_area.
+      #' 
+      #' NB: This function requires that the base_data.R module is run first, to fill the crops_area_harvested data frame for year 2000.
+      #' 
+      #' @param adjusted_cropland_area numerical Passed from this class.
+      #' @param crop_allotment numerical Passed from crop class (ratio between 0 and 1)
+      #' @return hectares harvested for given parameters
+      
+      if(length(adjusted_cropland_area) != 0 & length(crop_allotment) != 0) {
+        harv_area <- adjusted_cropland_area*crop_allotment
+      } else {
+        harv_area <- 0
+      }
+      return(harv_area) 
     }, 
     harvest_yield = function(iso3, year_index, crop_group, crop_data_df = NULL, policy_df = NULL) { 
       #' harvest_yield 
@@ -340,7 +358,7 @@ crop_manager <- R6::R6Class(
         }
       }
     }, 
-    crop_production = function(harvest_area, ratio_of_land_allotted, harvest_yield) {
+    crop_production = function(harvest_area, harvest_yield) {
       #' crop_production 
       #' 
       #' @description Calculates crop production (tonnes) as the product of harvest yield and harvest area
@@ -353,52 +371,10 @@ crop_manager <- R6::R6Class(
       #' @param harvest_area numerical Harvest area output of harvest_area (ha)
       #' @param harvest_yield numerical Harvest yield output of harvest_yield (t/ha)
       #' @return tonnes of crop
-      if(length(harvest_area) != 0 & length(ratio_of_land_allotted) != 0 & length(harvest_yield) != 0) {
-        return(harvest_area*ratio_of_land_allotted*harvest_yield)
+      if(length(harvest_area) != 0 & length(harvest_yield) != 0) {
+        return(harvest_area*harvest_yield)
       } else {
         return(0)
-      }
-    }, 
-    crop_allotment = function(iso3, year_index, crop_group, crop_data_df = NULL, policy_df = NULL) {
-      #' cropland_allotment
-      #'
-      #' @description Manages the proportion of cropland used for crop production.
-      #'
-      #' @details Not all cropland is put into production. Once fallow land area is subtracted from available cropland, crop production values
-      #' are determined by their proportion to the whole, by a ratio_of_land_allotted value, passed from the policy_df.
-      #'
-      #' @param iso3 character ISO Alpha-3 code
-      #' @param year_index numerical year
-      #' @param crop_group character string crop type
-      #' @param crop_data_df Data frame containing historical crop values
-      #' @param policy_df Data frame containing values for the ratio of available cropland allotted for the production of each crop type.
-      #' @return proportion between 0 and 1
-      if(year_index == 2000) {
-        ratio_allotted <- crops_area_allotted %>% 
-          dplyr::filter(iso_alpha3 == iso3 & year == year_index & crop_type == crop_group) %>% 
-          dplyr::pull(relative_area_allotted)
-        
-        if(length(ratio_allotted) != 0) { 
-          return(ratio_allotted)
-        } else {
-          return(0)
-        }
-        
-      } else {
-        ratio_allotted <- crop_data_df %>% 
-          dplyr::filter(iso_alpha3_code == iso3 & year == year_index & model_group == crop_group) %>% 
-          dplyr::pull(ratio_of_land_allotted)
-        
-        delta_ratio_allotted <- policy_df %>% 
-          dplyr::filter(iso_alpha3_code == iso3 & year == year_index & model_group == crop_group) %>% 
-          dplyr::pull(delta_allocation)
-        
-        if(length(ratio_allotted) != 0 & length(delta_ratio_allotted) != 0) {
-          ratio_allotted <- ratio_allotted + ratio_allotted*delta_ratio_allotted
-        } else {
-          ratio_allotted <- 0
-        }
-       return(ratio_allotted)
       }
     },
     crop_allocation = function(iso3, year_index, crop_group, crop_use, crop_data_df = NULL, policy_df = NULL) {
@@ -750,7 +726,7 @@ livestock_manager <- R6::R6Class(
 water_footprint_manager <- R6::R6Class(
   "water_footprint_manager", 
   list(
-    get_crop_wf = function(iso3, crop_group, wf) { 
+    get_crop_wf = function(iso3, crop_group, wf_group) { 
       #' get_crop_wf 
       #' 
       #' @description Water footprint (cubic meters per crop tonne) of crops and derived crop products (1996-2005) from Mekonnen and Hoekstra (2011).
@@ -760,12 +736,12 @@ water_footprint_manager <- R6::R6Class(
       #' Grey Water Footprint: The amount of freshwater required to dilute the wastewater generated in manufacturing, in order to maintain water quality , as determined by state and local standards. 
       #' @param iso3 character Country-level ISO Alpha 3 code, e.g., iso3 = "CAN"
       #' @param crop_group character Type of crop, e.g., crop_group = c("cereal", "pulse", "rootstubers", "fibercrop", "citrus", "fruit", "vegetable", "oilcrop", "treenut", "sugarcrop")
-      #' @param wf character Water footprint type, e.g., wf = c("green", "blue", "grey")
+      #' @param wf_group character Water footprint type, e.g., wf = c("green", "blue", "grey")
       #' 
       #' @return numerical water footrpint (cubic meters per crop tonne)
       #' @references Mekonnen, M.M. & Hoekstra, A.Y. (2011) The green, blue and grey water footprint of crops and derived crop products, Hydrology and Earth System Sciences, 15(5): 1577-1600.
         x <- mean_waterfootprint_crops %>% 
-          dplyr::filter(iso_code == iso3 & crop_type == crop_group & wf_type == wf) %>% 
+          dplyr::filter(iso_code == iso3 & model_group == crop_group & wf_type == wf_group) %>% 
           dplyr::pull(wf_mean)
       if(length(x) != 0) {
         return(x)
@@ -824,33 +800,305 @@ diet_manager <- R6::R6Class(
       } else {
         return(0)
       }
-    }, 
-    get_livestock_wf = function(iso3, livestock_group, use_group, wf) {
-      #' get_livestock_wf 
+    }
+  )
+)
+
+energy_manager <- R6::R6Class(
+  "energy_manager", 
+  list(
+    get_specific_energy = function(fuel_group) { 
+      #' get_specific_energy 
       #' 
-      #' @description Water footprint (cubic meters per animal product tonne) of farm animals and animal products (1996-2005) from Mekonnen & Hoekstra (2012).
-      #' @details
-      #' Blue Water Footprint: The amount of surface water and groundwater required (evaporated or used directly) to produce an item.
-      #' Green Water Footprint: The amount of rainwater required (evaporated or used directly) to make an item. 
-      #' Grey Water Footprint: The amount of freshwater required to dilute the wastewater generated in manufacturing, in order to maintain water quality , as determined by state and local standards. 
+      #' @description Specific energy (megajoules per tonnne) for each fuel_group.
       #' 
-      #' @param iso3 character Country level ISO Alpha 3 code, e.g., iso3 = "CAN"
-      #' @param livestock_group character Livestock group, e.g., livestock_group = c("aves", "beehive", "bovine", "camelid", "caprine", "rodentia", "sus", "fish")
-      #' @param use_group character Animal product usage group, e.g., use_group = c("dairy", "meat", "other"). NB: eggs are coded as aves_dairy.
-      #' @param wf character Water footprint type, e.g., wf = c("green", "blue", "grey")
+      #' @details Fuel types (e.g., gas, coal) produce energy and greenhouse gases at different rates, depending on how they are used. The Model 
+      #' does not yet account for this; it merely makes a direct conversion based on a table in this function. We also do not consider nuclear fuel, 
+      #' hydroelectric, geothermal, solar, or wind energy in terms of direct fuel use.
       #' 
-      #' @return numerical water footprint (cubic meters per animal product tonne)
-      #' @references Mekonnen, M.M. & Hoekstra, A.Y. (2012) A global assessment of the water footprint of farm animal products, Ecosystems, 15(3): 401–415.
+      #' @param fuel_group character Type of fuel that produces the energy, e.g., fuel_group = c("biofuel", "biomass", "coal", "ethanol", 
+      #' "gas", "geothermal", "hydro", "nuclear", "solar", "wind")
+      #' 
+      #' @return numerical MJ/t of fuel converted to energy
+      #' 
+      #' @references Hore-Lacy, I., 2010. Nuclear Energy in the 21st Century: World Nuclear University Press. Elsevier.
+      df <- data.frame(
+        fuel_type = c("biofuel", "biomass", "coal", "ethanol", "gas", "geothermal", "hydro", "nuclear", "oil", "solar", "wind"), 
+        MJ_per_kg = c(38, 16, 24, 26.8, 55, NA, NA, NA, 44, NA, NA), 
+        MJ_per_t = c(38e3, 16e3, 24e3, 26.8e3, 55e3, NA, NA, NA, 44e3, NA, NA)
+      )
+      spec_eng <- df %>% 
+        dplyr::filter(fuel_type == fuel_group) %>% 
+        dplyr::pull(MJ_per_t)
       
-      x <- mean_waterfootprint_livestock %>% 
-        dplyr::filter(iso_code == iso3 & model_group == paste0(livestock_group, "_", use_group) & wf_type == wf) %>% 
-        dplyr::pull(wf_mean)
-      if(length(x) != 0) {
-        return(x)
+      if(length(spec_eng) != 0) {
+        return(spec_eng)
       } else {
         return(0)
+      }
+    }, 
+    get_emission_intensity = function(fuel_group) { 
+      #' get_emission_intensity 
+      #' 
+      #' @description Emission intensity (tonnes CO2e per megajoule) for each fuel_group.
+      #' 
+      #' @details Counted as net CO2e for the moment, so biofuel has net zero emission intensity, gas has positive, etc.
+      #' 
+      #' @param fuel_group character Type of fuel that produces the energy, e.g., fuel_group = c("biofuel", "biomass", "coal", "ethanol", 
+      #' "gas", "geothermal", "hydro", "nuclear", "solar", "wind")
+      #' 
+      #' @return numerical t CO2e / MJ of fuel energy
+      df <- data.frame(
+        fuel_type = c("biofuel", "biomass", "coal", "ethanol", "gas", "geothermal", "hydro", "nuclear", "oil", "solar", "wind"),
+        tCO2e_per_MJ = c(0, 0, 9.04e-05, 0, 5.03e-05, 0, 0, 0, 6.93e-05, 0, 0)
+      )
+      ener_dens <- df %>% 
+        dplyr::filter(fuel_type == fuel_group) %>% 
+        dplyr::pull(tCO2e_per_MJ)
+      
+      if(length(ener_dens) != 0) {
+        return(ener_dens)
+      } else {
+        return(0)
+      }
+    }, 
+    get_biofuel_feedstock = function(iso3, year_index, crop_group, crop_data_df) {
+      #' get_biofuel_feedstock
+      #' 
+      #' @description Pulls othe_stock from crop_data passed from crop class
+      #' 
+      feedstk <- crop_data_df %>% 
+        dplyr::filter(iso_alpha3_code == iso3 & year == year_index & model_group == crop_group) %>% 
+        dplyr::pull(othe_stock)
+      
+      if(length(feedstk) != 0) {
+        return(feedstk)
+      } else {
+        return(0)
+      }
+    }, 
+    get_biofuel_from_crops = function(crop_group, fuel_group) { 
+      #' get_biofuel_from_crops
+      #' 
+      #' @description Function to convert tonnes of crop harvested to tonnes of biofuel or ethanol fuel produced.
+      #' 
+      #' @details Sugar/starchy crops go to bioethanol production; oilcrops go to biodiesel production. Ethanol conversion for cereal (also used for vegetable, fruit, 
+      #' citrus) based on maize; biodiesel (here, biofuel) conversion for oilcrop based on soybeans (i.e., 1.5 US gallons of fuel per bushel of soybeans, or 60 lb at 
+      #' 13% moisture). Treenut also assumed to be the same as oilcrop.
+      #' 
+      #' @param crop_group character Crop type, e.g., c("cereal", "pulse", "oilcrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop")
+      #' @param fuel_group character Fuel type, e.g., c("ethanol", "biodiesel")
+      #' 
+      #' @return t fuel/t crop
+      #' 
+      #' @references 
+      #' cereal ethanol: US Department of Agriculture, 2006. The economic feasibility of ethanol production from sugar in the United States.
+      #' pulse ethanol: Upendra, R.S., Pratima, K., Priyanka, S., Jagadish, M.L. and Nandhini, N.J., 2013. Production of bioethanol from hitherto underutilized agro waste 
+      #' (Field beans/Green pea pods waste) incorporating zero waste generation technique. International Journal of Innovative Research in Science, Engineering 
+      #' and Technology, 2(10), pp.5574-5579.
+      df = data.frame(
+        crop_type = c("cereal", "pulse", "oilcrop", "rootstubers", "vegetable", "fruit", "citrus", "treenut", "sugarcrop"), 
+        fuel_type = c("ethanol", "ethanol", "biofuel", "ethanol", "ethanol", "ethanol", "ethanol", "biofuel", "ethanol"), 
+        L_fuel_per_kg_crop = c(0.320, 0.250, 0.209, 0.250, 0.320, 0.320, 0.320, 0.209, 0.0924), 
+        t_fuel_per_t_crop = c(0.252, 0.197, 0.192, 0.197, 0.252, 0.252, 0.252, 0.192, 0.0729)
+      )
+      if(fuel_group == "ethanol") {
+        biof <- df %>% 
+          dplyr::filter(crop_type == crop_group & fuel_type == "ethanol") %>% 
+          dplyr::pull(t_fuel_per_t_crop)
+      } else if(fuel_group == "biofuel") {
+        biof <- df %>% 
+          dplyr::filter(crop_type == crop_group & fuel_type == "biofuel") %>% 
+          dplyr::pull(t_fuel_per_t_crop)
+      } else {
+        print("Error in get_biofuel_from_crops: check that fuel is biofuel or ethanol.")
+      }
+      if(length(biof) != 0) {
+        return(biof)
+      } else {
+        return(0) 
+      }
+    }, 
+    extract_fossil_fuels = function(iso3, year_index, fuel_group, policy_df = NULL) {
+      #' extract_fossil_fuels
+      #' 
+      #' @description Energy from fossil fuel sources, including peat
+      #' 
+      #' @details We are presently using principle energy consumption (PEC) numbers provided by [Our World In Data](https://ourworldindata.org/grapher/primary-energy-consumption-by-region) 
+      #' from various sources for fossil fuel production. While this is clearly incorrect, it makes more sense for the time being on a per country basis, because 
+      #' we cannot practically test for the entire world, and then redistribute energy by trade. This is something that will need to be worked on later.
+      #' 
+      #' @param iso3 character ISO Alpha-3 code for country
+      #' @param fuel_group character Fuel type must be fossil or peat, e.g., c("coal", "gas", "oil", "peat")
+      #' 
+      #' @return numerical Energy (megajoules per year)
+      #' 
+      #' @references Statistical Review of World Energy. https://www.bp.com/en/global/corporate/energy-economics/statistical-review-of-world-energy.html
+      if(fuel_group %in% c("coal", "gas", "oil", "peat")) {
+        energy <- pec_MJ %>% 
+          dplyr::filter(iso3_code == iso3 & year == year_index) %>% 
+          dplyr::pull(fuel_group)
+        
+        if(length(energy) != 0) {
+          return(energy)
+        } else {
+          return(0)
+        }
+      } else {
+        print("Error in extract_fossil_fuels: fuel group must be among coal, gas, peat, or oil")
+      }
+    }, 
+    produce_renewables = function(iso3, year_index, fuel_group, policy_df = NULL) {
+      #' produce_renewables
+      #' 
+      #' @description Energy from renewable sources, excluding nuclear
+      #' 
+      #' @details We are presently using principle energy consumption (PEC) numbers provided by [Our World In Data](https://ourworldindata.org/grapher/primary-energy-consumption-by-region) 
+      #' from various sources for fossil fuel production. While this is clearly incorrect, it makes more sense for the time being on a per country basis, because 
+      #' we cannot practically test for the entire world, and then redistribute energy by trade. This is something that will need to be worked on later.
+      #' 
+      #' TODO Integrate code developed for estimating national level solar and wind energy production here. These data are independent of the OWID PEC numbers and based 
+      #' on total available energy by source.
+      #' 
+      #' @param iso3 character ISO Alpha-3 code for country
+      #' @param fuel_group character Fuel type must renewable, e.g., c("geothermal", "hydro", "solar", "wind")
+      #' 
+      #' @return numerical Energy (megajoules per year)
+      #' 
+      #' @references Statistical Review of World Energy. https://www.bp.com/en/global/corporate/energy-economics/statistical-review-of-world-energy.html
+      if(fuel_group %in% c("geothermal", "hydro", "solar", "wind")) {
+        energy <- pec_MJ %>% 
+          dplyr::filter(iso3_code == iso3 & year == year_index) %>% 
+          dplyr::pull(fuel_group)
+        
+        if(length(energy) != 0) {
+          return(energy)
+        } else {
+          return(0)
+        }
+      } else {
+        print("Error in produce_renewables: fuel group must be among geothermal, hydro, solar, or wind")
+      }
+    }, 
+    produce_nuclear = function(iso3, year_index, fuel_group, policy_df = NULL) {
+      #' produce_nuclear
+      #' 
+      #' @description Energy from nuclear sources
+      #' 
+      #' @details We are presently using principle energy consumption (PEC) numbers provided by [Our World In Data](https://ourworldindata.org/grapher/primary-energy-consumption-by-region) 
+      #' from various sources for fossil fuel production. While this is clearly incorrect, it makes more sense for the time being on a per country basis, because 
+      #' we cannot practically test for the entire world, and then redistribute energy by trade. This is something that will need to be worked on later.
+      #' 
+      #' TODO Integrate code developed for estimating national level solar and wind energy production here. These data are independent of the OWID PEC numbers and based 
+      #' on total available energy by source.
+      #' 
+      #' @param iso3 character ISO Alpha-3 code for country
+      #' @param fuel_group character Fuel type must be nuclear
+      #' 
+      #' @return numerical Energy (megajoules per year)
+      #' 
+      #' @references Statistical Review of World Energy. https://www.bp.com/en/global/corporate/energy-economics/statistical-review-of-world-energy.html
+      if(fuel_group == "nuclear") {
+        energy <- pec_MJ %>% 
+          dplyr::filter(iso3_code == iso3 & year == year_index) %>% 
+          dplyr::pull(fuel_group)
+        
+        if(length(energy) != 0) {
+          return(energy)
+        } else {
+          return(0)
+        }
+      } else {
+        print("Error in produce_renewables: fuel group must nuclear")
       }
     }
   )
 )
 
+forest_manager <- R6::R6Class(
+  "forest_manager", 
+  list(
+    forest_harvest_area = function(iso3, year, land_use_data_df = NULL) {
+      #' forest_harvest_area
+      #' 
+      #' @description Just passes all forest area (hectares) from land_use class. Eventually this should pass forest area 
+      #' designated for harvesting wood products.
+      #' 
+      #' @return Forest area (ha)
+      lua <- land_use_data_df %>% 
+        dplyr::filter(iso_alpha3_code == iso3 & year == year_index & land_use_type == "forest") %>% 
+        dplyr::pull(land_use_area)
+      
+      if(length(lua) != 0) {
+        return(lua)
+      } else {
+        return(0)
+      }
+    }, 
+    new_forest = function(iso3, year, land_use_data_df = NULL, forest_data_df = NULL, policy_df = NULL) {
+      #' new_forest
+      #' 
+      #' @description Determines area of new forest planted annually (hectares)
+      #' 
+      #' @param iso3 character
+      #' @param year numerical
+      #' @param land_use_data_df Data frame of historical land use passed from land_use class
+      #' @param forest_data_df Data frame of historical forest passed from forest class
+      #' @param policy_df Data frame of forest management policy
+      #' 
+      #' @return Afforested area (ha) 
+      
+    }, 
+    harvest_wood = function() {
+      #' harvest_wood
+      #' 
+      #' @description Determines the density of wood to be harvested from forest land
+      #' 
+      #' @details This will need to be filled in with specific values for forest types/countries/regions/etc. I have used a value of 86 US tons per acre 
+      #' from Thomas (2018).
+      #' 
+      #' @return harvest wood area density (t/ha)
+      #' 
+      #' @reference Thomas, N. 2018. How Many Tons of Wood are on an Acre of Land? Forest2Market.com. 
+      #' https://www.forest2market.com/blog/how-many-tons-of-wood-are-on-an-acre-of-land (Accessed 21-04-2021)
+      return(193)
+    }, 
+    get_charcoal = function(harvested_wood, production_method = NULL) {
+      #' get_charcoal
+      #' 
+      #' @description Determines the density of charcoal from harvested wood.
+      #' 
+      #' @details Charcoal is produced by heating dry wood to a high temperature in low-oxygen/anoxic conditions, resulting in the elimination of excess water 
+      #' and volatile compounds from the product. The production methods used here are averages of those specified in Stassen (2002) for each method. If the user 
+      #' does not add a production method argument, the improved_traditional method is assumed.
+      #' 
+      #' NB: Presently all harvested wood is processed for charcoal. This is highly unrealistic as charcoal is a comparatively low-value wood product.
+      #' 
+      #' TODO Factor by some fraction of harvested_wood actually used for charcoal production
+      #' 
+      #' @param numerical harvested_wood Tonnes of wood to be converted to charcoal.
+      #' @param character production_method Method used to produce charcoal, e.g., c("traditional", "improved_traditional", "industrial", "high_yield")
+      #' 
+      #' @return Charcoal mass (tonnes)
+      #' 
+      #' @references Stassen, H. E. 2002. "Developments in charcoal production technology". In Unasilva: An international journal of forestry and forest industries, Vol. 53 2002/4
+      #' 
+      df <- data.frame(
+        method = c("traditional", "improved_traditional", "industrial", "high_yield"), 
+        ratio = c(0.1, 0.143, 0.167, 0.286)
+      )
+      if(is.null(production_method)) {
+        production_method = "improved_traditional"
+      }
+      ratio <- df %>% 
+        dplyr::filter(method == production_method) %>% 
+        dplyr::pull(ratio)
+      
+      char <- ratio*harvested_wood
+      if(length(char) != 0) {
+        return(char)
+      } else {
+        "Error in get_charcoal: check that you have entered an appropriate method and numerical wood harvest value."
+      }
+    }
+  ))
