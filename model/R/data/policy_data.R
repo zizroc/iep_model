@@ -1,25 +1,17 @@
 # policy data
 
-historical_land_use_data = data.frame(
-  iso_alpha3_code = "CHN", 
-  fao_countrycode = 351, 
-  year            = 2000, 
-  land_use_type   = c("cropland", "permanent_cropland", "arable_land", "pasture", "forest", "otherland"), 
-  land_use_area   = c(     6.2e6,               5.58e6,         6.2e5,       1e6,      1e7,         1e5)
-)
-
 #the following are just placeholders
 #to do this properly, some animal mix groups can contribute to improving land management
 population_policy_df <- data.frame (
-  iso_alpha3_code = c("CHN", "CHN"),
-  year            = c(2001, 2002),  
-  cgr             = c(0.01, 0.01)
+  iso_alpha3_code = "CHN",
+  year            = c(2001:2020),  
+  cgr             = 0.01
 )
 
 migration_policy_df <- data.frame (
-  iso_alpha3_code = c("CHN", "CHN"),
-  year            = c(2001, 2002), 
-  net_migration   = c(0.01, 0.01)
+  iso_alpha3_code = "CHN",
+  year            = c(2001:2020), 
+  net_migration   = 0
 )
 
 land_use_policy_df <- data.frame (
