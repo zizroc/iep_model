@@ -7,44 +7,62 @@ source(paste0(model_path, "/model/R/data/policy_data.R"))
 population_manager <- R6::R6Class(
   "population_manager", 
   list( 
-    population = function(iso3, year_index, population_data_df = NULL, policy_df = NULL) {
+    population = function(iso3, year_indexL) {
       #' population 
       #' 
-      #' @description Calculates number of humans in the specified country
+      #' @description Pulls population numbers for the unified list of UN median estimates and projections by country.
       #' 
       #' @param iso3 character ISO Alpha-3 code
       #' @param year_index numerical year
-      #' @param population_data_df Data frame containing historical population data passed from population class.
-      #' @return numerical Crude growth rate (persons added per 1e5 people per year)
-      if(year_index == 2000) {
-        
-        pop <- population_un %>% 
-          dplyr::filter(iso_alpha3 == iso3 & year == year_index) %>% 
-          dplyr::pull(population_total)
-        
-        if(length(pop) != 0) {
-          return(pop)
-        } else {
-          return(0)
-        }
-        
+      #' 
+      pop <- population_un %>% 
+        dplyr::filter(iso_alpha3 == iso3 & year == year_index) %>% 
+        dplyr::pull(population_total)
+      
+      if(length(pop) != 0) {
+        return(pop)
       } else {
-        pop <- population_data_df %>% 
-          dplyr::filter(iso_alpha3_code == iso3 & year == year_index-1) %>% 
-          dplyr::pull(population)
-        
-        cgr <- policy_df %>% 
-          dplyr::filter(iso_alpha3_code == iso3 & year == year_index) %>% 
-          dplyr::pull(cgr)
-        
-        if(length(pop) != 0 & length(cgr) != 0) {
-          pop <- pop + pop*cgr
-          return(pop)
-        } else {
-          return(0)
-        }
-      } 
+        return(0)
+      }
     }, 
+    #' population = function(iso3, year_index, population_data_df = NULL, policy_df = NULL) {
+    #'   #' population 
+    #'   #' 
+    #'   #' @description Calculates number of humans in the specified country
+    #'   #' 
+    #'   #' @param iso3 character ISO Alpha-3 code
+    #'   #' @param year_index numerical year
+    #'   #' @param population_data_df Data frame containing historical population data passed from population class.
+    #'   #' @return numerical Crude growth rate (persons added per 1e5 people per year)
+    #'   if(year_index == 2000) {
+    #'     
+    #'     pop <- population_un %>% 
+    #'       dplyr::filter(iso_alpha3 == iso3 & year == year_index) %>% 
+    #'       dplyr::pull(population_total)
+    #'     
+    #'     if(length(pop) != 0) {
+    #'       return(pop)
+    #'     } else {
+    #'       return(0)
+    #'     }
+    #'     
+    #'   } else {
+    #'     pop <- population_data_df %>% 
+    #'       dplyr::filter(iso_alpha3_code == iso3 & year == year_index-1) %>% 
+    #'       dplyr::pull(population)
+    #'     
+    #'     cgr <- policy_df %>% 
+    #'       dplyr::filter(iso_alpha3_code == iso3 & year == year_index) %>% 
+    #'       dplyr::pull(cgr)
+    #'     
+    #'     if(length(pop) != 0 & length(cgr) != 0) {
+    #'       pop <- pop + pop*cgr
+    #'       return(pop)
+    #'     } else {
+    #'       return(0)
+    #'     }
+    #'   } 
+    #' }, 
     net_migration = function(iso3, year_index, migration_data_df = NULL, policy_df = NULL) {
       #' net_migration 
       #' 
